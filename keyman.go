@@ -112,6 +112,11 @@ func bytesToCert(derBytes []byte) (*Certificate, error) {
 	return &Certificate{cert, derBytes}, nil
 }
 
+// X509 returns the x509 certificate underlying this Certificate
+func (cert *Certificate) X509() *x509.Certificate {
+	return cert.cert
+}
+
 // PEMEncoded encodes the Certificate in PEM
 func (cert *Certificate) PEMEncoded() (pemBytes []byte) {
 	return pem.EncodeToMemory(&pem.Block{Type: PEM_HEADER_CERTIFICATE, Bytes: cert.derBytes})
