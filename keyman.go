@@ -37,7 +37,7 @@ func GeneratePK(bits int) (key *PrivateKey, err error) {
 	return
 }
 
-// LoadPKFromFile loads a PrivateKey from a file
+// LoadPKFromFile loads a PEM-encoded PrivateKey from a file
 func LoadPKFromFile(filename string) (key *PrivateKey, err error) {
 	privateKeyData, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -59,7 +59,7 @@ func (key *PrivateKey) PEMEncoded() (pemBytes []byte) {
 	return pem.EncodeToMemory(&pem.Block{Type: PEM_HEADER_PRIVATE_KEY, Bytes: x509.MarshalPKCS1PrivateKey(key.rsaKey)})
 }
 
-// WriteToFile writes the PrivateKey to the given file
+// WriteToFile writes the PEM-encoded PrivateKey to the given file
 func (key *PrivateKey) WriteToFile(filename string) (err error) {
 	keyOut, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
@@ -92,6 +92,7 @@ func (key *PrivateKey) Certificate(template *x509.Certificate, issuer *Certifica
 	return bytesToCert(derBytes)
 }
 
+// LoadCertificateFromFile loads a Certificate from a PEM-encoded file
 func LoadCertificateFromFile(filename string) (*Certificate, error) {
 	if certificateData, err := ioutil.ReadFile(filename); err != nil {
 		return nil, fmt.Errorf("Unable to read certificate file from disk: %s", err)
@@ -128,7 +129,17 @@ func (cert *Certificate) WriteToFile(filename string) (err error) {
 	if err != nil {
 		return fmt.Errorf("Failed to open %s for writing: %s", filename, err)
 	}
-	pem.Encode(certOut, &pem.Block{Type: PEM_HEADER_CERTIFICATE, Bytes: cert.derBytes})
-	certOut.Close()
-	return
+	defer certOut.Close()
+	return pem.Encode(certOut, &pem.Block{Type: PEM_HEADER_CERTIFICATE, Bytes: cert.derBytes})
+}
+
+// WriteToDERFile writes the DER-encoded Certificate to a file.
+func (cert *Certificate) WriteToDERFile(filename string) (err error) {
+	certOut, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("Failed to open %s for writing: %s", filename, err)
+	}
+	defer certOut.Close()
+	_, err = certOut.Write(cert.derBytes)
+	return err
 }
