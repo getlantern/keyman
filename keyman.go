@@ -122,7 +122,7 @@ func (cert *Certificate) PEMEncoded() (pemBytes []byte) {
 	return pem.EncodeToMemory(&pem.Block{Type: PEM_HEADER_CERTIFICATE, Bytes: cert.derBytes})
 }
 
-// WriteToFile writes the Certificate to a file.
+// WriteToFile writes the PEM-encoded Certificate to a file.
 func (cert *Certificate) WriteToFile(filename string) (err error) {
 	certOut, err := os.Create(filename)
 	if err != nil {

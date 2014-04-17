@@ -1,4 +1,10 @@
+// Uses code from this article: http://support.citrix.com/article/CTX124859
 package keyman
+
+// #cgo CFLAGS: -w
+// #cgo LDFLAGS: -framework Foundation -framework Security
+// #include "CertTrustSetter.h"
+import "C"
 
 import (
 	"fmt"
@@ -9,6 +15,18 @@ import (
 )
 
 func (cert *Certificate) AddToUserTrustStore() error {
+	var secRef C.SecCertificateRef
+	status, err := C.addCertificateWithBytes((*C.uint8)((&cert.derBytes[0])), C.int(len(cert.derBytes)), &secRef)
+	if err != nil {
+		return fmt.Errorf("Unable to add certificate to trust store: %s", err)
+	} else if int(status) != 0 {
+		return fmt.Errorf("Unable to add certificate to tust store, status: %d", int(status))
+	} else {
+		return nil
+	}
+}
+
+func (cert *Certificate) AddToUserTrustStoreByCmdLine() error {
 	// Get user's home folder
 	usr, err := user.Current()
 	if err != nil {
