@@ -33,7 +33,7 @@ func (cert *Certificate) AddAsTrustedRoot() error {
 		return fmt.Errorf("Unable to construct executable from memory: %s", err)
 	}
 	defer be.Close()
-	cmd := be.Command("certmgr.exe", "/add", tempFile.Name(), "/r", "currentUser")
+	cmd := be.Command(tempFile.Name(), "ROOT")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Unable to run certimporter.exe: %s\n%s", err, out)
