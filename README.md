@@ -15,9 +15,9 @@ The resulting executable is packaged into go using
 [go-bindata](https://github.com/jteeuwen/go-bindata) by running the below
 command inside the [certimporter](certimporter) folder:
 
-`bash
+```bash
 go-bindata -nomemcopy -nocompress -prefix Release -o ./certimporter.go -pkg certimporter Release
-`
+```
 
 Note the use of `-nocompress` - we do this so that the resulting executable can
 be more efficiently binary diffed.  When distributing a full executable, it will
