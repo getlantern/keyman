@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/getlantern/keyman/certimporter"
 	"github.com/oxtoacart/byteexec"
-	"github.com/oxtoacart/keyman/certimporter"
 )
 
 // AddAsTrustedRoot adds the certificate to the user's trust store as a trusted
