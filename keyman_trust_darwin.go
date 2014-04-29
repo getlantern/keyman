@@ -5,18 +5,16 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"os/user"
+)
+
+const (
+	// TODO: Make sure to handle case where library is on a different path
+	OSX_SYSTEM_KEYCHAIN_PATH = "/Library/Keychains/System.keychain"
 )
 
 // AddAsTrustedRoot adds the certificate to the user's trust store as a trusted
 // root CA.
 func (cert *Certificate) AddAsTrustedRoot() error {
-	// Get user's home folder
-	usr, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("Unable to determine current user: %s", err)
-	}
-
 	// Create a temp file containing the certificate
 	tempFile, err := ioutil.TempFile("", "tempCert")
 	defer os.Remove(tempFile.Name())
@@ -29,11 +27,22 @@ func (cert *Certificate) AddAsTrustedRoot() error {
 	}
 
 	// Add it as a trusted cert
-	cmd := exec.Command("security", "add-trusted-cert", "-k", usr.HomeDir+"/Library/Keychains/login.keychain", tempFile.Name())
+	cmd := exec.Command("security", "add-trusted-cert", "-d", "-k", OSX_SYSTEM_KEYCHAIN_PATH, tempFile.Name())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Unable to run security command: %s\n%s", err, out)
 	} else {
 		return nil
 	}
+}
+
+// Checks whether this certificate is install based purely on looking for a cert
+// in the system keychain that has the same common name.  This function returns
+// true if there are one or more certs in the system keychain whose common name
+// matches this cert.
+func (cert *Certificate) IsInstalled() (bool, error) {
+	// Add it as a trusted cert
+	cmd := exec.Command("security", "find-certificate", "-c", cert.X509().Subject.CommonName, OSX_SYSTEM_KEYCHAIN_PATH)
+	err := cmd.Run()
+	return err == nil, nil
 }

@@ -41,3 +41,7 @@ func (cert *Certificate) AddAsTrustedRoot() error {
 		return nil
 	}
 }
+
+func (cert *Certificate) IsInstalled() (bool, error) {
+	return false, fmt.Errorf("IsInstalled is not supported on this platform")
+}

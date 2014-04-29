@@ -41,6 +41,9 @@ func GeneratePK(bits int) (key *PrivateKey, err error) {
 func LoadPKFromFile(filename string) (key *PrivateKey, err error) {
 	privateKeyData, err := ioutil.ReadFile(filename)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, err
+		}
 		return nil, fmt.Errorf("Unable to read private key file from file %s: %s", filename, err)
 	}
 	block, _ := pem.Decode(privateKeyData)
@@ -95,6 +98,9 @@ func (key *PrivateKey) Certificate(template *x509.Certificate, issuer *Certifica
 // LoadCertificateFromFile loads a Certificate from a PEM-encoded file
 func LoadCertificateFromFile(filename string) (*Certificate, error) {
 	if certificateData, err := ioutil.ReadFile(filename); err != nil {
+		if os.IsNotExist(err) {
+			return nil, err
+		}
 		return nil, fmt.Errorf("Unable to read certificate file from disk: %s", err)
 	} else {
 		block, _ := pem.Decode(certificateData)
