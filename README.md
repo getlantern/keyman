@@ -3,7 +3,7 @@ keyman
 
 Easy golang RSA key and certificate management.
 
-API documentation available on [godoc](https://godoc.org/github.com/oxtoacart/keyman).
+API documentation available on [godoc](https://godoc.org/github.com/getlantern/keyman).
 
 ### Build Notes
 
