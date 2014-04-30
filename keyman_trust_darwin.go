@@ -41,7 +41,6 @@ func (cert *Certificate) AddAsTrustedRoot() error {
 // true if there are one or more certs in the system keychain whose common name
 // matches this cert.
 func (cert *Certificate) IsInstalled() (bool, error) {
-	// Add it as a trusted cert
 	cmd := exec.Command("security", "find-certificate", "-c", cert.X509().Subject.CommonName, OSX_SYSTEM_KEYCHAIN_PATH)
 	err := cmd.Run()
 	return err == nil, nil

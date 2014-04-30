@@ -9,6 +9,10 @@ import (
 	"github.com/oxtoacart/byteexec"
 )
 
+const (
+	ROOT_CERT_STORE_NAME = "ROOT"
+)
+
 // AddAsTrustedRoot adds the certificate to the user's trust store as a trusted
 // root CA.
 func (cert *Certificate) AddAsTrustedRoot() error {
@@ -24,16 +28,12 @@ func (cert *Certificate) AddAsTrustedRoot() error {
 	}
 
 	// Add it as a trusted cert
-	exe, err := certimporter.Asset("certimporter.exe")
+	be, err := certImporter()
 	if err != nil {
-		return fmt.Errorf("Unable to get certimporter.exe: %s", err)
-	}
-	be, err := byteexec.NewByteExec(exe)
-	if err != nil {
-		return fmt.Errorf("Unable to construct executable from memory: %s", err)
+		return err
 	}
 	defer be.Close()
-	cmd := be.Command(tempFile.Name(), "ROOT")
+	cmd := be.Command("add", ROOT_CERT_STORE_NAME, tempFile.Name())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Unable to run certimporter.exe: %s\n%s", err, out)
@@ -43,5 +43,24 @@ func (cert *Certificate) AddAsTrustedRoot() error {
 }
 
 func (cert *Certificate) IsInstalled() (bool, error) {
-	return false, fmt.Errorf("IsInstalled is not supported on this platform")
+	be, err := certImporter()
+	if err != nil {
+		return false, err
+	}
+	defer be.Close()
+	cmd := be.Command("find", ROOT_CERT_STORE_NAME, cert.X509().Subject.CommonName)
+	err = cmd.Run()
+	return err == nil, nil
+}
+
+func certImporter() (be *byteexec.ByteExec, err error) {
+	exe, err := certimporter.Asset("certimporter.exe")
+	if err != nil {
+		return nil, fmt.Errorf("Unable to get certimporter.exe: %s", err)
+	}
+	be, err = byteexec.NewByteExec(exe)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to construct executable from memory: %s", err)
+	}
+	return be, nil
 }

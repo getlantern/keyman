@@ -22,15 +22,36 @@ wchar_t *convertCharArrayToLPCWSTR(const char* charArray)
 	return wString;
 }
 
-// See http://www.idrix.fr/Root/Samples/capi_pem.cpp for the basis of this
-int main(int argc, char *argv[])
-{
+// See http://msdn.microsoft.com/en-us/library/windows/desktop/aa382363(v=vs.85).aspx
+int checkExists(HCERTSTORE store, char *argv[]) {
+	LPCWSTR expectedName = convertCharArrayToLPCWSTR(argv[3]);
+	PCCERT_CONTEXT cert = CertFindCertificateInStore(
+		store,
+		X509_ASN_ENCODING,
+		0,                
+		CERT_FIND_SUBJECT_STR,
+		expectedName,
+		NULL);
+	if (cert) {
+		return 0;
+	}
+	else {
+		cout << "No certificate was found with common name " << argv[3];
+		return 2;
+	}
+}
+
+// See http://www.idrix.fr/Root/Samples/capi_pem.cpp
+// See http://msdn.microsoft.com/en-us/library/windows/desktop/aa382037(v=vs.85).aspx
+// See http://blogs.msdn.com/b/alejacma/archive/2008/01/31/how-to-import-a-certificate-without-user-interaction-c-c.aspx
+int addCert(HCERTSTORE store, char *argv[]) {
 	// Open the certificate file
+	char *certFileName = argv[3];
 	ifstream certFile;
-	certFile.open(argv[1], ios::in | ios::binary | ios::ate);
+	certFile.open(certFileName, ios::in | ios::binary | ios::ate);
 	if (!certFile.is_open()) {
-		cout << "Unable to open cert file: " << argv[1] << endl;
-		return 1;
+		cout << "Unable to open cert file: " << certFileName << endl;
+		return 2;
 	}
 
 	// Read the certificate file into memory
@@ -47,37 +68,50 @@ int main(int argc, char *argv[])
 		size);
 	if (cert == NULL) {
 		cout << "Unable to create CertCreateCertificateContext: " << GetLastError() << " data: " << memblock << endl;
-		return 2;
-	}
-
-	// Open the system store into which to add the certificate
-	HCERTSTORE store = CertOpenSystemStore(NULL, convertCharArrayToLPCWSTR(argv[2]));
-	if (store == NULL) {
-		cout << "Unable to open ROOT cert store: " << GetLastError() << endl;
 		return 3;
 	}
-	
-	// Add the certificate
-	CRYPTUI_WIZ_IMPORT_SRC_INFO importSrc;
-	memset(&importSrc, 0, sizeof(CRYPTUI_WIZ_IMPORT_SRC_INFO));
-	importSrc.dwSize = sizeof(CRYPTUI_WIZ_IMPORT_SRC_INFO);
-	importSrc.dwSubjectChoice = CRYPTUI_WIZ_IMPORT_SUBJECT_CERT_CONTEXT;
-	importSrc.pCertContext = cert;
-	importSrc.dwFlags = CRYPT_EXPORTABLE | CRYPT_USER_KEYSET;
 
-	if (CryptUIWizImport(
-		CRYPTUI_WIZ_NO_UI,
-		NULL,
-		NULL,
-		&importSrc,
-		store
+	if (CertAddCertificateContextToStore(
+		store,
+		cert,
+		CERT_STORE_ADD_REPLACE_EXISTING,
+		NULL
 		) == 0)
 	{
-		cout << "CryptUIWizImport error: " << GetLastError() << endl;
-		return 1;
+		cout << "CertAddCertificateContextToStore error: " << GetLastError() << endl;
+		return 4;
 	}
 	else {
 		return 0;
 	}
 }
+// See http://www.idrix.fr/Root/Samples/capi_pem.cpp for the basis of this
+int main(int argc, char *argv[])
+{
+	LPCWSTR storeName = convertCharArrayToLPCWSTR(argv[2]);
+	// Open the system store into which to add the certificate
+	// See https://groups.google.com/forum/#!topic/microsoft.public.dotnet.security/iIkP0mkf5f4
+	HCERTSTORE store = CertOpenStore(
+		CERT_STORE_PROV_SYSTEM,
+		X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+		0,
+		CERT_SYSTEM_STORE_LOCAL_MACHINE,
+		storeName);
+	if (store == NULL) {
+		cout << "Unable to open " << argv[2] << " cert store: " << GetLastError() << endl;
+		return 1;
+	}
+
+	char *action = argv[1];
+	if (strcmp(action, "find") == 0)
+	{
+		return checkExists(store, argv);
+	}
+	else
+	{
+		return addCert(store, argv);
+	}
+}
+
+
 
