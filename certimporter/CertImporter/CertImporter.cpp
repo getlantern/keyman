@@ -14,10 +14,12 @@
 
 using namespace std;
 
+const int STR_BUF_SZ = 4096;
+
 wchar_t *convertCharArrayToLPCWSTR(const char* charArray)
 {
-	wchar_t* wString = new wchar_t[4096];
-	MultiByteToWideChar(CP_ACP, 0, charArray, -1, wString, 4096);
+	wchar_t* wString = new wchar_t[STR_BUF_SZ];
+	MultiByteToWideChar(CP_ACP, 0, charArray, -1, wString, STR_BUF_SZ);
 	return wString;
 }
 
@@ -102,7 +104,7 @@ int main(int argc, char *argv[])
 	}
 
 	char *action = argv[1];
-	if (strcmp(action, "find") == 0)
+	if (strncmp(action, "find", 4) == 0)
 	{
 		return checkExists(store, argv);
 	}
