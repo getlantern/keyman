@@ -9,7 +9,6 @@
 #include "stdafx.h"
 #include <windows.h>
 #include <Wincrypt.h>
-#include <cryptuiapi.h>
 #include <iostream>
 #include <fstream>
 
