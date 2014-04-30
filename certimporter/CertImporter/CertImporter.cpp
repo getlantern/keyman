@@ -15,17 +15,10 @@
 using namespace std;
 
 const int STR_BUF_SZ = 4096;
-
-wchar_t *convertCharArrayToLPCWSTR(const char* charArray)
-{
-	wchar_t* wString = new wchar_t[STR_BUF_SZ];
-	MultiByteToWideChar(CP_ACP, 0, charArray, -1, wString, STR_BUF_SZ);
-	return wString;
-}
+const int STATUS_BAD_PARAMS = 99;
 
 // See http://msdn.microsoft.com/en-us/library/windows/desktop/aa382363(v=vs.85).aspx
-int checkExists(HCERTSTORE store, char *argv[]) {
-	LPCWSTR expectedName = convertCharArrayToLPCWSTR(argv[3]);
+int checkExists(HCERTSTORE store, LPCWSTR expectedName) {
 	PCCERT_CONTEXT cert = CertFindCertificateInStore(
 		store,
 		X509_ASN_ENCODING,
@@ -36,28 +29,28 @@ int checkExists(HCERTSTORE store, char *argv[]) {
 	if (cert) {
 		return 0;
 	}
-	else {
-		cout << "No certificate was found with common name " << argv[3];
-		return 2;
-	}
+	cerr << "No certificate was found with common name " << expectedName;
+	return 2;
 }
 
 // See http://www.idrix.fr/Root/Samples/capi_pem.cpp
 // See http://msdn.microsoft.com/en-us/library/windows/desktop/aa382037(v=vs.85).aspx
 // See http://blogs.msdn.com/b/alejacma/archive/2008/01/31/how-to-import-a-certificate-without-user-interaction-c-c.aspx
-int addCert(HCERTSTORE store, char *argv[]) {
+int addCert(HCERTSTORE store, LPCWSTR certFileName) {
 	// Open the certificate file
-	char *certFileName = argv[3];
 	ifstream certFile;
 	certFile.open(certFileName, ios::in | ios::binary | ios::ate);
 	if (!certFile.is_open()) {
-		cout << "Unable to open cert file: " << certFileName << endl;
+		cerr << "Unable to open cert file: " << certFileName << endl;
 		return 2;
 	}
 
 	// Read the certificate file into memory
+	// Note - tellg gives us the size because we opened the file with ios::ate, which puts
+	// the cursor at the end of the file.
 	streampos size = certFile.tellg();
 	char *memblock = new char[size];
+	// Now jump back to the beginning of the file and read it into memory
 	certFile.seekg(0, ios::beg);
 	certFile.read(memblock, size);
 	certFile.close();
@@ -68,7 +61,7 @@ int addCert(HCERTSTORE store, char *argv[]) {
 		(BYTE *)memblock,
 		size);
 	if (cert == NULL) {
-		cout << "Unable to create CertCreateCertificateContext: " << GetLastError() << " data: " << memblock << endl;
+		cerr << "Unable to create CertCreateCertificateContext: " << GetLastError() << " data: " << memblock << endl;
 		return 3;
 	}
 
@@ -77,19 +70,37 @@ int addCert(HCERTSTORE store, char *argv[]) {
 		cert,
 		CERT_STORE_ADD_REPLACE_EXISTING,
 		NULL
-		) == 0)
-	{
-		cout << "CertAddCertificateContextToStore error: " << GetLastError() << endl;
+		) == FALSE) {
+		cerr << "CertAddCertificateContextToStore error: " << GetLastError() << endl;
 		return 4;
 	}
-	else {
-		return 0;
-	}
+
+	return 0;
 }
 // See http://www.idrix.fr/Root/Samples/capi_pem.cpp for the basis of this
-int main(int argc, char *argv[])
+int wmain(int argc, wchar_t *argv[], wchar_t *envp[])
 {
-	LPCWSTR storeName = convertCharArrayToLPCWSTR(argv[2]);
+	// Parse arguments
+	if (argc < 4) {
+		cerr << "Not enough arguments" << endl;
+		return STATUS_BAD_PARAMS;
+	}
+
+	LPCWSTR action = argv[1];
+	LPCWSTR storeName = argv[2];
+	LPCWSTR actionData = argv[3];
+
+	// Figure out which action to take
+	int(*actionFn)(HCERTSTORE, LPCWSTR);
+	if (wcsncmp(action, L"find", 4) == 0) {
+		actionFn = checkExists;
+	} else if (wcsncmp(action, L"add", 3) == 0) {
+		actionFn = addCert;
+	} else {
+		cerr << "Invalid action: " << action << endl;
+		return STATUS_BAD_PARAMS;
+	}
+
 	// Open the system store into which to add the certificate
 	// See https://groups.google.com/forum/#!topic/microsoft.public.dotnet.security/iIkP0mkf5f4
 	HCERTSTORE store = CertOpenStore(
@@ -99,20 +110,9 @@ int main(int argc, char *argv[])
 		CERT_SYSTEM_STORE_LOCAL_MACHINE,
 		storeName);
 	if (store == NULL) {
-		cout << "Unable to open " << argv[2] << " cert store: " << GetLastError() << endl;
+		cerr << "Unable to open " << storeName << " cert store: " << GetLastError() << endl;
 		return 1;
 	}
 
-	char *action = argv[1];
-	if (strncmp(action, "find", 4) == 0)
-	{
-		return checkExists(store, argv);
-	}
-	else
-	{
-		return addCert(store, argv);
-	}
+	return actionFn(store, actionData);
 }
-
-
-

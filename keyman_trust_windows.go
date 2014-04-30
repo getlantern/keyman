@@ -48,6 +48,9 @@ func (cert *Certificate) IsInstalled() (bool, error) {
 		return false, err
 	}
 	defer be.Close()
+	// TODO: make sure that passing byte strings of various encodings to the
+	// certimporter program works in different languages/different usernames (
+	// which end up in the temp path, etc.)
 	cmd := be.Command("find", ROOT_CERT_STORE_NAME, cert.X509().Subject.CommonName)
 	err = cmd.Run()
 	return err == nil, nil
