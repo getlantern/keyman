@@ -97,18 +97,24 @@ func (key *PrivateKey) Certificate(template *x509.Certificate, issuer *Certifica
 
 // LoadCertificateFromFile loads a Certificate from a PEM-encoded file
 func LoadCertificateFromFile(filename string) (*Certificate, error) {
-	if certificateData, err := ioutil.ReadFile(filename); err != nil {
+	certificateData, err := ioutil.ReadFile(filename)
+	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, err
 		}
 		return nil, fmt.Errorf("Unable to read certificate file from disk: %s", err)
-	} else {
-		block, _ := pem.Decode(certificateData)
-		if block == nil {
-			return nil, fmt.Errorf("Unable to decode PEM encoded certificate")
-		}
-		return bytesToCert(block.Bytes)
 	}
+	return LoadCertificateFromPEMBytes(certificateData)
+}
+
+// LoadCertificateFromPEMBytes loads a Certificate from a byte array
+// in PEM format
+func LoadCertificateFromPEMBytes(pembytes []byte) (*Certificate, error) {
+	block, _ := pem.Decode(pembytes)
+	if block == nil {
+		return nil, fmt.Errorf("Unable to decode PEM encoded certificate")
+	}
+	return bytesToCert(block.Bytes)
 }
 
 func bytesToCert(derBytes []byte) (*Certificate, error) {
@@ -148,4 +154,11 @@ func (cert *Certificate) WriteToDERFile(filename string) (err error) {
 	defer certOut.Close()
 	_, err = certOut.Write(cert.derBytes)
 	return err
+}
+
+// PoolContainingCert creates a pool containing this cert.
+func (cert *Certificate) PoolContainingCert() *x509.CertPool {
+	pool := x509.NewCertPool()
+	pool.AddCert(cert.cert)
+	return pool
 }
