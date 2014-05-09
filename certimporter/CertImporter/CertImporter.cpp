@@ -11,6 +11,7 @@
 #include <Wincrypt.h>
 #include <iostream>
 #include <fstream>
+#pragma comment(lib, "crypt32.lib")
 
 using namespace std;
 
@@ -116,3 +117,4 @@ int wmain(int argc, wchar_t *argv[], wchar_t *envp[])
 
 	return actionFn(store, actionData);
 }
+
