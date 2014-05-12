@@ -62,7 +62,10 @@ int addCert(HCERTSTORE store, LPCWSTR certFileName) {
 		(BYTE *)memblock,
 		size);
 	if (cert == NULL) {
-		cerr << "Unable to create CertCreateCertificateContext: " << GetLastError() << " data: " << memblock << endl;
+		wchar_t err_buf[256];
+		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), 
+              MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), err_buf, 256, NULL);
+		wcerr << "Unable to create CertCreateCertificateContext: " << GetLastError() << " " << err_buf << " data: " << memblock << endl;
 		return 3;
 	}
 
