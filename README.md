@@ -1,4 +1,4 @@
-keyman ![Travis CI Status](https://travis-ci.org/getlantern/keyman.svg?branch=master)&nbsp;[![Coverage Status](https://coveralls.io/repos/getlantern/keyman/badge.png)](https://coveralls.io/r/getlantern/keyman)
+keyman [![Travis CI Status](https://travis-ci.org/getlantern/keyman.svg?branch=master)](https://travis-ci.org/getlantern/keyman)&nbsp;[![Coverage Status](https://coveralls.io/repos/getlantern/keyman/badge.png)](https://coveralls.io/r/getlantern/keyman)&nbsp;[![GoDoc](https://godoc.org/github.com/getlantern/keyman?status.png)](http://godoc.org/github.com/getlantern/keyman)
 ======
 
 Easy golang RSA key and certificate management. 
