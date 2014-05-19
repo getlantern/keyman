@@ -99,9 +99,9 @@ func (key *PrivateKey) Certificate(template *x509.Certificate, issuer *Certifica
 	return bytesToCert(derBytes)
 }
 
-// TypicalCertificateFor generates a typical certificate based on the given
-// parameters.  These certs are usable for key encipherment and digital
-// signatures, making them suited to use in TLS.
+// TLSCertificateFor generates a certificate useful for TLS use based on the
+// given parameters.  These certs are usable for key encipherment and digital
+// signatures.
 //
 //     organization: the org name for the cert.
 //     name:         used as the common name for the cert.  If name is an IP
@@ -110,7 +110,7 @@ func (key *PrivateKey) Certificate(template *x509.Certificate, issuer *Certifica
 //     issuer:       the certificate which is issuing the new cert.  If nil, the
 //                   new cert will be a self-signed CA certificate.
 //
-func (key *PrivateKey) TypicalCertificateFor(
+func (key *PrivateKey) TLSCertificateFor(
 	organization string,
 	name string,
 	expiresIn time.Duration,

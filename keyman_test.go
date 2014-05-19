@@ -56,7 +56,7 @@ func TestRoundTrip(t *testing.T) {
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 	}
 
-	cert, err := pk.TypicalCertificateFor("Test Org", "127.0.0.1", TWO_WEEKS, nil)
+	cert, err := pk.TLSCertificateFor("Test Org", "127.0.0.1", TWO_WEEKS, nil)
 	if err != nil {
 		t.Fatalf("Unable to generate self-signed certificate: %s", err)
 	}
