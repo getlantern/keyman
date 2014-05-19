@@ -1,7 +1,5 @@
-keyman
+keyman ![Travis CI Status](https://travis-ci.org/getlantern/keyman.svg?branch=master)
 ======
-
-![Travis CI Status](https://travis-ci.org/getlantern/keyman.svg?branch=master)
 
 Easy golang RSA key and certificate management. 
 
