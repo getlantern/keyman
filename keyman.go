@@ -116,14 +116,13 @@ func (key *PrivateKey) TLSCertificateFor(
 	validUntil time.Time,
 	isCA bool,
 	issuer *Certificate) (cert *Certificate, err error) {
-	now := time.Now()
 	template := &x509.Certificate{
 		SerialNumber: new(big.Int).SetInt64(int64(time.Now().Nanosecond())),
 		Subject: pkix.Name{
 			Organization: []string{organization},
 			CommonName:   name,
 		},
-		NotBefore: now.Add(-24 * time.Hour),
+		NotBefore: time.Now().AddDate(0, -1, 0),
 		NotAfter:  validUntil,
 
 		BasicConstraintsValid: true,
@@ -136,14 +135,13 @@ func (key *PrivateKey) TLSCertificateFor(
 		template.IPAddresses = []net.IP{ip}
 	}
 
-	// If no issuer, add server authentication
 	if issuer == nil {
 		// If it's a CA, add certificate signing
 		if isCA {
 			template.KeyUsage = template.KeyUsage | x509.KeyUsageCertSign
+			template.IsCA = true
 		}
 		template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
-		template.IsCA = true
 	}
 	cert, err = key.Certificate(template, issuer)
 	return
