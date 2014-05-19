@@ -106,14 +106,14 @@ func (key *PrivateKey) Certificate(template *x509.Certificate, issuer *Certifica
 //     organization: the org name for the cert.
 //     name:         used as the common name for the cert.  If name is an IP
 //                   address, it is also added as an IP SAN.
-//     epxiresIn:    timeframe within which the cert expires
+//     validUntil:   time at which certificate expires
 //     issuer:       the certificate which is issuing the new cert.  If nil, the
 //                   new cert will be a self-signed CA certificate.
 //
 func (key *PrivateKey) TLSCertificateFor(
 	organization string,
 	name string,
-	expiresIn time.Duration,
+	validUntil time.Time,
 	issuer *Certificate) (cert *Certificate, err error) {
 	now := time.Now()
 	template := &x509.Certificate{
@@ -123,7 +123,7 @@ func (key *PrivateKey) TLSCertificateFor(
 			CommonName:   name,
 		},
 		NotBefore: now.Add(-24 * time.Hour),
-		NotAfter:  now.Add(expiresIn),
+		NotAfter:  validUntil,
 
 		BasicConstraintsValid: true,
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,

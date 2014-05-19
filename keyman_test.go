@@ -2,9 +2,6 @@ package keyman
 
 import (
 	"bytes"
-	"crypto/x509"
-	"crypto/x509/pkix"
-	"math/big"
 	"net"
 	"os"
 	"testing"
@@ -42,21 +39,7 @@ func TestRoundTrip(t *testing.T) {
 		t.Errorf("Loaded PK didn't match saved PK\nSaved\n------------%s\n\nLoaded\n------------%s", pk.PEMEncoded(), pk2.PEMEncoded())
 	}
 
-	now := time.Now()
-	template := &x509.Certificate{
-		SerialNumber: new(big.Int).SetInt64(int64(time.Now().Nanosecond())),
-		Subject: pkix.Name{
-			Organization: []string{"Test Org"},
-			CommonName:   "commonname.com",
-		},
-		NotBefore: now.Add(-1 * ONE_WEEK),
-		NotAfter:  now.Add(TWO_WEEKS),
-
-		BasicConstraintsValid: true,
-		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-	}
-
-	cert, err := pk.TLSCertificateFor("Test Org", "127.0.0.1", TWO_WEEKS, nil)
+	cert, err := pk.TLSCertificateFor("Test Org", "127.0.0.1", time.Now().Add(TWO_WEEKS), nil)
 	if err != nil {
 		t.Fatalf("Unable to generate self-signed certificate: %s", err)
 	}
@@ -86,7 +69,7 @@ func TestRoundTrip(t *testing.T) {
 		t.Errorf("Loaded certificate didn't match saved certificate\nSaved\n------------%s\n\nLoaded\n------------%s", cert.PEMEncoded(), cert2.PEMEncoded())
 	}
 
-	_, err = pk.Certificate(template, cert)
+	_, err = pk.Certificate(cert.X509(), cert)
 	if err != nil {
 		t.Fatalf("Unable to generate certificate signed by original certificate")
 	}
