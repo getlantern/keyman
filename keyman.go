@@ -114,6 +114,7 @@ func (key *PrivateKey) TLSCertificateFor(
 	organization string,
 	name string,
 	validUntil time.Time,
+	isCA bool,
 	issuer *Certificate) (cert *Certificate, err error) {
 	now := time.Now()
 	template := &x509.Certificate{
@@ -135,9 +136,12 @@ func (key *PrivateKey) TLSCertificateFor(
 		template.IPAddresses = []net.IP{ip}
 	}
 
-	// If no issuer, treat this as a CA cert
+	// If no issuer, add server authentication
 	if issuer == nil {
-		template.KeyUsage = template.KeyUsage | x509.KeyUsageCertSign
+		// If it's a CA, add certificate signing
+		if isCA {
+			template.KeyUsage = template.KeyUsage | x509.KeyUsageCertSign
+		}
 		template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 		template.IsCA = true
 	}

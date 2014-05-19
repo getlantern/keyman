@@ -39,7 +39,7 @@ func TestRoundTrip(t *testing.T) {
 		t.Errorf("Loaded PK didn't match saved PK\nSaved\n------------%s\n\nLoaded\n------------%s", pk.PEMEncoded(), pk2.PEMEncoded())
 	}
 
-	cert, err := pk.TLSCertificateFor("Test Org", "127.0.0.1", time.Now().Add(TWO_WEEKS), nil)
+	cert, err := pk.TLSCertificateFor("Test Org", "127.0.0.1", time.Now().Add(TWO_WEEKS), true, nil)
 	if err != nil {
 		t.Fatalf("Unable to generate self-signed certificate: %s", err)
 	}
