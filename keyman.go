@@ -4,10 +4,14 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"math/big"
+	"net"
 	"os"
+	"time"
 )
 
 const (
@@ -93,6 +97,52 @@ func (key *PrivateKey) Certificate(template *x509.Certificate, issuer *Certifica
 		return nil, err
 	}
 	return bytesToCert(derBytes)
+}
+
+// TypicalCertificateFor generates a typical certificate based on the given
+// parameters.  These certs are usable for key encipherment and digital
+// signatures, making them suited to use in TLS.
+//
+//     organization: the org name for the cert.
+//     name:         used as the common name for the cert.  If name is an IP
+//                   address, it is also added as an IP SAN.
+//     epxiresIn:    timeframe within which the cert expires
+//     issuer:       the certificate which is issuing the new cert.  If nil, the
+//                   new cert will be a self-signed CA certificate.
+//
+func (key *PrivateKey) TypicalCertificateFor(
+	organization string,
+	name string,
+	expiresIn time.Duration,
+	issuer *Certificate) (cert *Certificate, err error) {
+	now := time.Now()
+	template := &x509.Certificate{
+		SerialNumber: new(big.Int).SetInt64(int64(time.Now().Nanosecond())),
+		Subject: pkix.Name{
+			Organization: []string{organization},
+			CommonName:   name,
+		},
+		NotBefore: now.Add(-24 * time.Hour),
+		NotAfter:  now.Add(expiresIn),
+
+		BasicConstraintsValid: true,
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+	}
+
+	// If name is an ip address, add it as an IP SAN
+	ip := net.ParseIP(name)
+	if ip != nil {
+		template.IPAddresses = []net.IP{ip}
+	}
+
+	// If no issuer, treat this as a CA cert
+	if issuer == nil {
+		template.KeyUsage = template.KeyUsage | x509.KeyUsageCertSign
+		template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
+		template.IsCA = true
+	}
+	cert, err = key.Certificate(template, issuer)
+	return
 }
 
 // LoadCertificateFromFile loads a Certificate from a PEM-encoded file

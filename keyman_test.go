@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"math/big"
+	"net"
 	"os"
 	"testing"
 	"time"
@@ -55,9 +56,20 @@ func TestRoundTrip(t *testing.T) {
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 	}
 
-	cert, err := pk.Certificate(template, nil)
+	cert, err := pk.TypicalCertificateFor("Test Org", "127.0.0.1", TWO_WEEKS, nil)
 	if err != nil {
 		t.Fatalf("Unable to generate self-signed certificate: %s", err)
+	}
+
+	numberOfIPSANs := len(cert.X509().IPAddresses)
+	if numberOfIPSANs != 1 {
+		t.Errorf("Wrong number of SANs, expected 1 got %d", numberOfIPSANs)
+	} else {
+		ip := cert.X509().IPAddresses[0]
+		expectedIP := net.ParseIP("127.0.0.1")
+		if ip.String() != expectedIP.String() {
+			t.Errorf("Wrong IP SAN.  Expected %s, got %s", expectedIP, ip)
+		}
 	}
 
 	err = cert.WriteToFile(CERT_FILE)
