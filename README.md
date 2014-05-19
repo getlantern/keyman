@@ -1,7 +1,9 @@
 keyman
 ======
 
-Easy golang RSA key and certificate management.
+![Travis CI Status](https://travis-ci.org/getlantern/keyman.svg?branch=master)
+
+Easy golang RSA key and certificate management. 
 
 API documentation available on [godoc](https://godoc.org/github.com/getlantern/keyman).
 
