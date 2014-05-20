@@ -213,6 +213,20 @@ func (cert *Certificate) WriteToFile(filename string) (err error) {
 	return pem.Encode(certOut, cert.pemBlock())
 }
 
+func (cert *Certificate) WriteToTempFile() (name string, err error) {
+	// Create a temp file containing the certificate
+	tempFile, err := ioutil.TempFile("", "tempCert")
+	if err != nil {
+		return "", fmt.Errorf("Unable to create temp file: %s", err)
+	}
+	name = tempFile.Name()
+	err = cert.WriteToFile(name)
+	if err != nil {
+		return "", fmt.Errorf("Unable to save certificate to temp file: %s", err)
+	}
+	return
+}
+
 // WriteToDERFile writes the DER-encoded Certificate to a file.
 func (cert *Certificate) WriteToDERFile(filename string) (err error) {
 	certOut, err := os.Create(filename)

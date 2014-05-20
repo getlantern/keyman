@@ -33,6 +33,7 @@ func (cert *Certificate) AddAsTrustedRoot() error {
 		return err
 	}
 	defer be.Close()
+
 	cmd := be.Command("add", ROOT_CERT_STORE_NAME, tempFile.Name())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -48,12 +49,18 @@ func (cert *Certificate) IsInstalled() (bool, error) {
 		return false, err
 	}
 	defer be.Close()
+
 	// TODO: make sure that passing byte strings of various encodings to the
 	// certimporter program works in different languages/different usernames (
 	// which end up in the temp path, etc.)
 	cmd := be.Command("find", ROOT_CERT_STORE_NAME, cert.X509().Subject.CommonName)
 	err = cmd.Run()
-	return err == nil, nil
+
+	// Consider the certificate found if and only if certimporter.exe exited
+	// with a 0 exit code.  Any non-zero code (cert not found, or error looking
+	// for cert) is treated as the cert not being found.
+	found := err == nil
+	return found, nil
 }
 
 func certImporter() (be *byteexec.ByteExec, err error) {
