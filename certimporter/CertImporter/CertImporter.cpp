@@ -18,7 +18,12 @@ using namespace std;
 const int STR_BUF_SZ = 4096;
 const int STATUS_BAD_PARAMS = 99;
 
-// See http://msdn.microsoft.com/en-us/library/windows/desktop/aa382363(v=vs.85).aspx
+/**
+ * Checks whether a certificate with the expectedName exists in the specified
+ * certificate store.
+ *
+ * See http://msdn.microsoft.com/en-us/library/windows/desktop/aa382363(v=vs.85).aspx
+ */
 int checkExists(HCERTSTORE store, LPCWSTR expectedName) {
 	PCCERT_CONTEXT cert = CertFindCertificateInStore(
 		store,
@@ -30,19 +35,24 @@ int checkExists(HCERTSTORE store, LPCWSTR expectedName) {
 	if (cert) {
 		return 0;
 	}
-	cerr << "No certificate was found with common name " << expectedName;
+	wcerr << "No certificate was found with common name " << expectedName;
 	return 2;
 }
 
-// See http://www.idrix.fr/Root/Samples/capi_pem.cpp
-// See http://msdn.microsoft.com/en-us/library/windows/desktop/aa382037(v=vs.85).aspx
-// See http://blogs.msdn.com/b/alejacma/archive/2008/01/31/how-to-import-a-certificate-without-user-interaction-c-c.aspx
+/**
+ * Imports the certificate from the specified file into the given certificate
+ * store.  The file must contain DER encoded bytes for an X509 certificate.
+ *
+ * See http://www.idrix.fr/Root/Samples/capi_pem.cpp
+ * See http://msdn.microsoft.com/en-us/library/windows/desktop/aa382037(v=vs.85).aspx
+ * See http://blogs.msdn.com/b/alejacma/archive/2008/01/31/how-to-import-a-certificate-without-user-interaction-c-c.aspx
+ */
 int addCert(HCERTSTORE store, LPCWSTR certFileName) {
 	// Open the certificate file
 	ifstream certFile;
 	certFile.open(certFileName, ios::in | ios::binary | ios::ate);
 	if (!certFile.is_open()) {
-		cerr << "Unable to open cert file: " << certFileName << endl;
+		wcerr << "Unable to open cert file: " << certFileName << endl;
 		return 2;
 	}
 
@@ -75,12 +85,13 @@ int addCert(HCERTSTORE store, LPCWSTR certFileName) {
 		CERT_STORE_ADD_REPLACE_EXISTING,
 		NULL
 		) == FALSE) {
-		cerr << "CertAddCertificateContextToStore error: " << GetLastError() << endl;
+		wcerr << "CertAddCertificateContextToStore error: " << GetLastError() << endl;
 		return 4;
 	}
 
 	return 0;
 }
+
 // See http://www.idrix.fr/Root/Samples/capi_pem.cpp for the basis of this
 int wmain(int argc, wchar_t *argv[], wchar_t *envp[])
 {
@@ -107,6 +118,8 @@ int wmain(int argc, wchar_t *argv[], wchar_t *envp[])
 
 	// Open the system store into which to add the certificate
 	// See https://groups.google.com/forum/#!topic/microsoft.public.dotnet.security/iIkP0mkf5f4
+	// We use the system store to avoid prompting the user (which is what
+	// happens when using the user store).
 	HCERTSTORE store = CertOpenStore(
 		CERT_STORE_PROV_SYSTEM,
 		X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
@@ -114,7 +127,7 @@ int wmain(int argc, wchar_t *argv[], wchar_t *envp[])
 		CERT_SYSTEM_STORE_LOCAL_MACHINE,
 		storeName);
 	if (store == NULL) {
-		cerr << "Unable to open " << storeName << " cert store: " << GetLastError() << endl;
+		wcerr << "Unable to open " << storeName << " cert store: " << GetLastError() << endl;
 		return 1;
 	}
 
