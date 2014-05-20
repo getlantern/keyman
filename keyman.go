@@ -1,3 +1,4 @@
+// Package keyman provides convenience APIs around Go's built-in crypto APIs.
 package keyman
 
 import (
@@ -31,6 +32,10 @@ type Certificate struct {
 	derBytes []byte
 }
 
+/*******************************************************************************
+ * Private Key Functions
+ ******************************************************************************/
+
 // GeneratePK generates a PrivateKey with a specified size in bits.
 func GeneratePK(bits int) (key *PrivateKey, err error) {
 	var rsaKey *rsa.PrivateKey
@@ -63,7 +68,7 @@ func LoadPKFromFile(filename string) (key *PrivateKey, err error) {
 
 // PEMEncoded encodes the PrivateKey in PEM
 func (key *PrivateKey) PEMEncoded() (pemBytes []byte) {
-	return pem.EncodeToMemory(&pem.Block{Type: PEM_HEADER_PRIVATE_KEY, Bytes: x509.MarshalPKCS1PrivateKey(key.rsaKey)})
+	return pem.EncodeToMemory(key.pemBlock())
 }
 
 // WriteToFile writes the PEM-encoded PrivateKey to the given file
@@ -72,12 +77,20 @@ func (key *PrivateKey) WriteToFile(filename string) (err error) {
 	if err != nil {
 		return fmt.Errorf("Failed to open %s for writing: %s", filename, err)
 	}
-	if err := pem.Encode(keyOut, &pem.Block{Type: PEM_HEADER_PRIVATE_KEY, Bytes: x509.MarshalPKCS1PrivateKey(key.rsaKey)}); err != nil {
+	if err := pem.Encode(keyOut, key.pemBlock()); err != nil {
 		return fmt.Errorf("Unable to PEM encode private key: %s", err)
 	}
 	keyOut.Close()
 	return
 }
+
+func (key *PrivateKey) pemBlock() *pem.Block {
+	return &pem.Block{Type: PEM_HEADER_PRIVATE_KEY, Bytes: x509.MarshalPKCS1PrivateKey(key.rsaKey)}
+}
+
+/*******************************************************************************
+ * Certificate Functions
+ ******************************************************************************/
 
 /*
 Certificate() generates a certificate for the Public Key of the given
@@ -92,7 +105,13 @@ func (key *PrivateKey) Certificate(template *x509.Certificate, issuer *Certifica
 	} else {
 		issuerCert = issuer.cert
 	}
-	derBytes, err := x509.CreateCertificate(rand.Reader, template, issuerCert, &key.rsaKey.PublicKey, key.rsaKey)
+	derBytes, err := x509.CreateCertificate(
+		rand.Reader,           // secure entropy
+		template,              // the template for the new cert
+		issuerCert,            // cert that's signing this cert
+		&key.rsaKey.PublicKey, // public key
+		key.rsaKey,            // private key
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -107,6 +126,7 @@ func (key *PrivateKey) Certificate(template *x509.Certificate, issuer *Certifica
 //     name:         used as the common name for the cert.  If name is an IP
 //                   address, it is also added as an IP SAN.
 //     validUntil:   time at which certificate expires
+//     isCA:         whether or not this cert is a CA
 //     issuer:       the certificate which is issuing the new cert.  If nil, the
 //                   new cert will be a self-signed CA certificate.
 //
@@ -116,6 +136,7 @@ func (key *PrivateKey) TLSCertificateFor(
 	validUntil time.Time,
 	isCA bool,
 	issuer *Certificate) (cert *Certificate, err error) {
+
 	template := &x509.Certificate{
 		SerialNumber: new(big.Int).SetInt64(int64(time.Now().Nanosecond())),
 		Subject: pkix.Name{
@@ -135,14 +156,17 @@ func (key *PrivateKey) TLSCertificateFor(
 		template.IPAddresses = []net.IP{ip}
 	}
 
-	if issuer == nil {
-		// If it's a CA, add certificate signing
-		if isCA {
-			template.KeyUsage = template.KeyUsage | x509.KeyUsageCertSign
-			template.IsCA = true
-		}
+	isSelfSigned := issuer == nil
+	if isSelfSigned {
 		template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 	}
+
+	// If it's a CA, add certificate signing
+	if isCA {
+		template.KeyUsage = template.KeyUsage | x509.KeyUsageCertSign
+		template.IsCA = true
+	}
+
 	cert, err = key.Certificate(template, issuer)
 	return
 }
@@ -169,14 +193,6 @@ func LoadCertificateFromPEMBytes(pembytes []byte) (*Certificate, error) {
 	return bytesToCert(block.Bytes)
 }
 
-func bytesToCert(derBytes []byte) (*Certificate, error) {
-	cert, err := x509.ParseCertificate(derBytes)
-	if err != nil {
-		return nil, err
-	}
-	return &Certificate{cert, derBytes}, nil
-}
-
 // X509 returns the x509 certificate underlying this Certificate
 func (cert *Certificate) X509() *x509.Certificate {
 	return cert.cert
@@ -184,7 +200,7 @@ func (cert *Certificate) X509() *x509.Certificate {
 
 // PEMEncoded encodes the Certificate in PEM
 func (cert *Certificate) PEMEncoded() (pemBytes []byte) {
-	return pem.EncodeToMemory(&pem.Block{Type: PEM_HEADER_CERTIFICATE, Bytes: cert.derBytes})
+	return pem.EncodeToMemory(cert.pemBlock())
 }
 
 // WriteToFile writes the PEM-encoded Certificate to a file.
@@ -194,7 +210,7 @@ func (cert *Certificate) WriteToFile(filename string) (err error) {
 		return fmt.Errorf("Failed to open %s for writing: %s", filename, err)
 	}
 	defer certOut.Close()
-	return pem.Encode(certOut, &pem.Block{Type: PEM_HEADER_CERTIFICATE, Bytes: cert.derBytes})
+	return pem.Encode(certOut, cert.pemBlock())
 }
 
 // WriteToDERFile writes the DER-encoded Certificate to a file.
@@ -213,4 +229,16 @@ func (cert *Certificate) PoolContainingCert() *x509.CertPool {
 	pool := x509.NewCertPool()
 	pool.AddCert(cert.cert)
 	return pool
+}
+
+func bytesToCert(derBytes []byte) (*Certificate, error) {
+	cert, err := x509.ParseCertificate(derBytes)
+	if err != nil {
+		return nil, err
+	}
+	return &Certificate{cert, derBytes}, nil
+}
+
+func (cert *Certificate) pemBlock() *pem.Block {
+	return &pem.Block{Type: PEM_HEADER_CERTIFICATE, Bytes: cert.derBytes}
 }
