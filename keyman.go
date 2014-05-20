@@ -245,6 +245,10 @@ func (cert *Certificate) PoolContainingCert() *x509.CertPool {
 	return pool
 }
 
+func (cert *Certificate) ExpiresBefore(time time.Time) bool {
+	return cert.cert.NotAfter.Before(time)
+}
+
 func bytesToCert(derBytes []byte) (*Certificate, error) {
 	cert, err := x509.ParseCertificate(derBytes)
 	if err != nil {
