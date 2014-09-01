@@ -93,11 +93,20 @@ func (key *PrivateKey) pemBlock() *pem.Block {
  ******************************************************************************/
 
 /*
-Certificate() generates a certificate for the Public Key of the given
-PrivateKey based on the given template and signed by the given issuer.
-If issuer is nil, the generated certificate is self-signed.
+Certificate() generates a certificate for the Public Key of the given PrivateKey
+based on the given template and signed by the given issuer. If issuer is nil,
+the generated certificate is self-signed.
 */
 func (key *PrivateKey) Certificate(template *x509.Certificate, issuer *Certificate) (*Certificate, error) {
+	return key.CertificateForKey(template, issuer, &key.rsaKey.PublicKey)
+}
+
+/*
+CertificateForKey() generates a certificate for the given Public Key based on
+the given template and signed by the given issuer.  If issuer is nil, the
+generated certificate is self-signed.
+*/
+func (key *PrivateKey) CertificateForKey(template *x509.Certificate, issuer *Certificate, publicKey interface{}) (*Certificate, error) {
 	var issuerCert *x509.Certificate
 	if issuer == nil {
 		// Note - for self-signed certificates, we include the host's external IP address
@@ -106,11 +115,11 @@ func (key *PrivateKey) Certificate(template *x509.Certificate, issuer *Certifica
 		issuerCert = issuer.cert
 	}
 	derBytes, err := x509.CreateCertificate(
-		rand.Reader,           // secure entropy
-		template,              // the template for the new cert
-		issuerCert,            // cert that's signing this cert
-		&key.rsaKey.PublicKey, // public key
-		key.rsaKey,            // private key
+		rand.Reader, // secure entropy
+		template,    // the template for the new cert
+		issuerCert,  // cert that's signing this cert
+		publicKey,   // public key
+		key.rsaKey,  // private key
 	)
 	if err != nil {
 		return nil, err
