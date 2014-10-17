@@ -127,10 +127,6 @@ func (key *PrivateKey) CertificateForKey(template *x509.Certificate, issuer *Cer
 	return bytesToCert(derBytes)
 }
 
-func (key *PrivateKey) CSR(tmpl *x509.CertificateRequest) (*Certificate, error) {
-	return nil, nil
-}
-
 // TLSCertificateFor generates a certificate useful for TLS use based on the
 // given parameters.  These certs are usable for key encipherment and digital
 // signatures.
