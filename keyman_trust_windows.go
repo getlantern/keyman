@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/getlantern/byteexec"
 	"github.com/getlantern/keyman/certimporter"
-	"github.com/oxtoacart/byteexec"
 )
 
 const (

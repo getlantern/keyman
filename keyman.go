@@ -127,6 +127,10 @@ func (key *PrivateKey) CertificateForKey(template *x509.Certificate, issuer *Cer
 	return bytesToCert(derBytes)
 }
 
+func (key *PrivateKey) CSR(tmpl *x509.CertificateRequest) (*Certificate, error) {
+	return nil, nil
+}
+
 // TLSCertificateFor generates a certificate useful for TLS use based on the
 // given parameters.  These certs are usable for key encipherment and digital
 // signatures.
@@ -192,8 +196,8 @@ func LoadCertificateFromFile(filename string) (*Certificate, error) {
 	return LoadCertificateFromPEMBytes(certificateData)
 }
 
-// LoadCertificateFromPEMBytes loads a Certificate from a byte array
-// in PEM format
+// LoadCertificateFromPEMBytes loads a Certificate from a byte array in PEM
+// format
 func LoadCertificateFromPEMBytes(pembytes []byte) (*Certificate, error) {
 	block, _ := pem.Decode(pembytes)
 	if block == nil {

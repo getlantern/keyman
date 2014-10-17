@@ -71,6 +71,16 @@ func TestRoundTrip(t *testing.T) {
 
 	_, err = pk.Certificate(cert.X509(), cert)
 	if err != nil {
-		t.Fatalf("Unable to generate certificate signed by original certificate")
+		t.Fatalf("Unable to generate certificate signed by original certificate: %s")
+	}
+
+	pk3, err := GeneratePK(1024)
+	if err != nil {
+		t.Fatalf("Unable to generate PK 3: %s", err)
+	}
+
+	_, err = pk.CertificateForKey(cert.X509(), cert, &pk3.rsaKey.PublicKey)
+	if err != nil {
+		t.Fatalf("Unable to generate certificate for pk3: %s", err)
 	}
 }
