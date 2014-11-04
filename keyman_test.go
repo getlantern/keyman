@@ -1,11 +1,12 @@
 package keyman
 
 import (
-	"bytes"
 	"net"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/getlantern/testify/assert"
 )
 
 const (
@@ -21,28 +22,17 @@ func TestRoundTrip(t *testing.T) {
 	defer os.Remove(CERT_FILE)
 
 	pk, err := GeneratePK(1024)
-	if err != nil {
-		t.Fatalf("Unable to generate PK: %s", err)
-	}
+	assert.NoError(t, err, "Unable to generate PK")
 
 	err = pk.WriteToFile(PK_FILE)
-	if err != nil {
-		t.Fatalf("Unable to save PK: %s", err)
-	}
+	assert.NoError(t, err, "Unable to save PK")
 
 	pk2, err := LoadPKFromFile(PK_FILE)
-	if err != nil {
-		t.Fatalf("Unable to load PK: %s", err)
-	}
-
-	if !bytes.Equal(pk.PEMEncoded(), pk2.PEMEncoded()) {
-		t.Errorf("Loaded PK didn't match saved PK\nSaved\n------------%s\n\nLoaded\n------------%s", pk.PEMEncoded(), pk2.PEMEncoded())
-	}
+	assert.NoError(t, err, "Unable to load PK")
+	assert.Equal(t, pk.PEMEncoded(), pk2.PEMEncoded(), "Loaded PK didn't match saved PK")
 
 	cert, err := pk.TLSCertificateFor("Test Org", "127.0.0.1", time.Now().Add(TWO_WEEKS), true, nil)
-	if err != nil {
-		t.Fatalf("Unable to generate self-signed certificate: %s", err)
-	}
+	assert.NoError(t, err, "Unable to generate self-signed certificate")
 
 	numberOfIPSANs := len(cert.X509().IPAddresses)
 	if numberOfIPSANs != 1 {
@@ -50,37 +40,26 @@ func TestRoundTrip(t *testing.T) {
 	} else {
 		ip := cert.X509().IPAddresses[0]
 		expectedIP := net.ParseIP("127.0.0.1")
-		if ip.String() != expectedIP.String() {
-			t.Errorf("Wrong IP SAN.  Expected %s, got %s", expectedIP, ip)
-		}
+		assert.Equal(t, expectedIP.String(), ip.String(), "Wrong IP SAN")
 	}
 
 	err = cert.WriteToFile(CERT_FILE)
-	if err != nil {
-		t.Fatalf("Unable to write certificate to file: %s", err)
-	}
+	assert.NoError(t, err, "Unable to write certificate to file")
 
 	cert2, err := LoadCertificateFromFile(CERT_FILE)
-	if err != nil {
-		t.Fatalf("Unable to load certificate from file: %s")
-	}
-
-	if !bytes.Equal(cert2.PEMEncoded(), cert.PEMEncoded()) {
-		t.Errorf("Loaded certificate didn't match saved certificate\nSaved\n------------%s\n\nLoaded\n------------%s", cert.PEMEncoded(), cert2.PEMEncoded())
-	}
+	assert.NoError(t, err, "Unable to load certificate from file")
+	assert.Equal(t, cert.PEMEncoded(), cert2.PEMEncoded(), "Loaded certificate didn't match saved certificate")
 
 	_, err = pk.Certificate(cert.X509(), cert)
-	if err != nil {
-		t.Fatalf("Unable to generate certificate signed by original certificate: %s", err)
-	}
+	assert.NoError(t, err, "Unable to generate certificate signed by original certificate")
 
 	pk3, err := GeneratePK(1024)
-	if err != nil {
-		t.Fatalf("Unable to generate PK 3: %s", err)
-	}
+	assert.NoError(t, err, "Unable to generate PK 3")
 
 	_, err = pk.CertificateForKey(cert.X509(), cert, &pk3.rsaKey.PublicKey)
-	if err != nil {
-		t.Fatalf("Unable to generate certificate for pk3: %s", err)
-	}
+	assert.NoError(t, err, "Unable to generate certificate for pk3")
+
+	x509rt, err := LoadCertificateFromX509(cert.X509())
+	assert.NoError(t, err, "Unable to load certificate from X509")
+	assert.Equal(t, cert, x509rt, "X509 round tripped cert didn't match original")
 }

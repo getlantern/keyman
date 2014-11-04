@@ -194,12 +194,18 @@ func LoadCertificateFromFile(filename string) (*Certificate, error) {
 
 // LoadCertificateFromPEMBytes loads a Certificate from a byte array in PEM
 // format
-func LoadCertificateFromPEMBytes(pembytes []byte) (*Certificate, error) {
-	block, _ := pem.Decode(pembytes)
+func LoadCertificateFromPEMBytes(pemBytes []byte) (*Certificate, error) {
+	block, _ := pem.Decode(pemBytes)
 	if block == nil {
 		return nil, fmt.Errorf("Unable to decode PEM encoded certificate")
 	}
 	return bytesToCert(block.Bytes)
+}
+
+// LoadCertificateFromX509 loads a Certificate from an x509.Certificate
+func LoadCertificateFromX509(cert *x509.Certificate) (*Certificate, error) {
+	pemBytes := pem.EncodeToMemory(&pem.Block{"CERTIFICATE", nil, cert.Raw})
+	return LoadCertificateFromPEMBytes(pemBytes)
 }
 
 // X509 returns the x509 certificate underlying this Certificate
