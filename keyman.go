@@ -147,7 +147,7 @@ func (key *PrivateKey) TLSCertificateFor(
 	issuer *Certificate) (cert *Certificate, err error) {
 
 	template := &x509.Certificate{
-		SerialNumber: new(big.Int).SetInt64(int64(time.Now().Nanosecond())),
+		SerialNumber: new(big.Int).SetInt64(int64(time.Now().UnixNano())),
 		Subject: pkix.Name{
 			Organization: []string{organization},
 			CommonName:   name,
