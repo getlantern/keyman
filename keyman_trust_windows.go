@@ -22,7 +22,7 @@ func init() {
 	if err != nil {
 		panic(fmt.Errorf("Unable to get certimporter.exe: %s", err))
 	}
-	cebe, err = byteexec.New(exe, "certimporter.exe")
+	cebe, err = byteexec.New(exe, "certimporter")
 	if err != nil {
 		panic(fmt.Errorf("Unable to construct executable from memory: %s", err))
 	}
