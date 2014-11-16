@@ -260,6 +260,20 @@ func (cert *Certificate) PoolContainingCert() *x509.CertPool {
 	return pool
 }
 
+// PoolContainingCerts constructs a CertPool containing all of the given certs
+// (PEM encoded).
+func PoolContainingCerts(certs ...string) (*x509.CertPool, error) {
+	pool := x509.NewCertPool()
+	for _, cert := range certs {
+		c, err := LoadCertificateFromPEMBytes([]byte(cert))
+		if err != nil {
+			return nil, err
+		}
+		pool.AddCert(c.cert)
+	}
+	return pool, nil
+}
+
 func (cert *Certificate) ExpiresBefore(time time.Time) bool {
 	return cert.cert.NotAfter.Before(time)
 }
