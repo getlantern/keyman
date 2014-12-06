@@ -204,7 +204,11 @@ func LoadCertificateFromPEMBytes(pemBytes []byte) (*Certificate, error) {
 
 // LoadCertificateFromX509 loads a Certificate from an x509.Certificate
 func LoadCertificateFromX509(cert *x509.Certificate) (*Certificate, error) {
-	pemBytes := pem.EncodeToMemory(&pem.Block{"CERTIFICATE", nil, cert.Raw})
+	pemBytes := pem.EncodeToMemory(&pem.Block{
+		Type:    "CERTIFICATE",
+		Headers: nil,
+		Bytes:   cert.Raw,
+	})
 	return LoadCertificateFromPEMBytes(pemBytes)
 }
 
