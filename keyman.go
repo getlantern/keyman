@@ -4,6 +4,7 @@ package keyman
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -25,6 +26,8 @@ const (
 
 var (
 	log = golog.LoggerFor("keyman")
+
+	tenYearsFromToday = time.Now().AddDate(10, 0, 0)
 )
 
 // PrivateKey is a convenience wrapper for rsa.PrivateKey
@@ -175,7 +178,7 @@ func (key *PrivateKey) TLSCertificateFor(
 
 	isSelfSigned := issuer == nil
 	if isSelfSigned {
-		template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
+		template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}
 	}
 
 	// If it's a CA, add certificate signing
@@ -339,7 +342,7 @@ func StoredPKAndCert(pkfile string, certfile string, organization string, name s
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Debugf("Creating new server cert at: %s", certfile)
-			cert, err = pk.TLSCertificateFor(organization, name, time.Now().AddDate(10, 0, 0), true, nil)
+			cert, err = pk.TLSCertificateFor(organization, name, tenYearsFromToday, true, nil)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -353,4 +356,72 @@ func StoredPKAndCert(pkfile string, certfile string, organization string, name s
 	}
 
 	return pk, cert, nil
+}
+
+// KeyPairFor creates a key pair for the given host, pkfile and certfile. If
+// either pkfile or certfile is missing, default files will be created.
+func KeyPairFor(host, pkfile, certfile string) (tls.Certificate, error) {
+	mypkfile := pkfile
+	if mypkfile == "" {
+		mypkfile = "key.pem"
+	}
+	mycertfile := certfile
+	if mycertfile == "" {
+		mycertfile = "cert.pem"
+	}
+	ctx := certContext{
+		PKFile:         mypkfile,
+		ServerCertFile: mycertfile,
+	}
+	_, err1 := os.Stat(ctx.ServerCertFile)
+	_, err2 := os.Stat(ctx.PKFile)
+	if os.IsNotExist(err1) || os.IsNotExist(err2) {
+		fmt.Println("At least one of the Key/Cert files is not found -> Generating new key pair")
+		err := ctx.initPKAndCert(host)
+		if err != nil {
+			return tls.Certificate{}, fmt.Errorf("Unable to init server cert: %s\n", err)
+		}
+	}
+
+	cert, err := tls.LoadX509KeyPair(ctx.ServerCertFile, ctx.PKFile)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("Unable to load certificate and key from %s and %s: %s\n", ctx.ServerCertFile, ctx.PKFile, err)
+	}
+	return cert, err
+}
+
+// certContext encapsulates the certificates used by a Server
+type certContext struct {
+	PKFile         string
+	ServerCertFile string
+	PK             *PrivateKey
+	ServerCert     *Certificate
+}
+
+// initPKAndCert initializes a PK + cert, creating them if necessary.
+func (ctx *certContext) initPKAndCert(host string) (err error) {
+	if ctx.PK, err = LoadPKFromFile(ctx.PKFile); err != nil {
+		if os.IsNotExist(err) {
+			fmt.Printf("Creating new PK at: %s\n", ctx.PKFile)
+			if ctx.PK, err = GeneratePK(2048); err != nil {
+				return
+			}
+			if err = ctx.PK.WriteToFile(ctx.PKFile); err != nil {
+				return fmt.Errorf("Unable to save private key: %s\n", err)
+			}
+		} else {
+			return fmt.Errorf("Unable to read private key, even though it exists: %s\n", err)
+		}
+	}
+
+	fmt.Printf("Creating new cert for host %v at: %s\n", host, ctx.ServerCertFile)
+	ctx.ServerCert, err = ctx.PK.TLSCertificateFor("Lantern", host, tenYearsFromToday, true, nil)
+	if err != nil {
+		return
+	}
+	err = ctx.ServerCert.WriteToFile(ctx.ServerCertFile)
+	if err != nil {
+		return
+	}
+	return nil
 }
