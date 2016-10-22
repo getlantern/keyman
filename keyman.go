@@ -75,6 +75,11 @@ func LoadPKFromFile(filename string) (key *PrivateKey, err error) {
 	return &PrivateKey{rsaKey: rsaKey}, nil
 }
 
+// RSA() returns the RSA key underlying this PrivateKey
+func (key *PrivateKey) RSA() *rsa.PrivateKey {
+	return key.rsaKey
+}
+
 // PEMEncoded encodes the PrivateKey in PEM
 func (key *PrivateKey) PEMEncoded() (pemBytes []byte) {
 	return pem.EncodeToMemory(key.pemBlock())
