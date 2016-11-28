@@ -233,6 +233,11 @@ func (cert *Certificate) X509() *x509.Certificate {
 	return cert.cert
 }
 
+// DER returns the der encoded bytes for this Certificate
+func (cert *Certificate) DER() []byte {
+	return cert.derBytes
+}
+
 // PEMEncoded encodes the Certificate in PEM
 func (cert *Certificate) PEMEncoded() (pemBytes []byte) {
 	return pem.EncodeToMemory(cert.pemBlock())
