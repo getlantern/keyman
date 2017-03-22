@@ -39,7 +39,7 @@ func TestRoundTrip(t *testing.T) {
 	assert.NoError(t, err, "Unable to load PK")
 	assert.Equal(t, pk.PEMEncoded(), pk2.PEMEncoded(), "Loaded PK didn't match saved PK")
 
-	cert, err := pk.TLSCertificateFor("Test Org", "127.0.0.1", time.Now().Add(TWO_WEEKS), true, nil)
+	cert, err := pk.TLSCertificateFor("Test Org", "127.0.0.1", "127.0.0.1", time.Now().Add(TWO_WEEKS), true, nil)
 	assert.NoError(t, err, "Unable to generate self-signed certificate")
 
 	numberOfIPSANs := len(cert.X509().IPAddresses)

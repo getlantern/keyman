@@ -148,8 +148,9 @@ func (key *PrivateKey) CertificateForKey(template *x509.Certificate, issuer *Cer
 // signatures.
 //
 //     organization: the org name for the cert.
-//     name:         used as the common name for the cert.  If name is an IP
+//     host:         used as the hostname for the cert.  If host is an IP
 //                   address, it is also added as an IP SAN.
+//     commonName:   used as the common name for the cert.
 //     validUntil:   time at which certificate expires
 //     isCA:         whether or not this cert is a CA
 //     issuer:       the certificate which is issuing the new cert.  If nil, the
@@ -157,7 +158,8 @@ func (key *PrivateKey) CertificateForKey(template *x509.Certificate, issuer *Cer
 //
 func (key *PrivateKey) TLSCertificateFor(
 	organization string,
-	name string,
+	host string,
+	commonName string,
 	validUntil time.Time,
 	isCA bool,
 	issuer *Certificate) (cert *Certificate, err error) {
@@ -166,7 +168,7 @@ func (key *PrivateKey) TLSCertificateFor(
 		SerialNumber: new(big.Int).SetInt64(int64(time.Now().UnixNano())),
 		Subject: pkix.Name{
 			Organization: []string{organization},
-			CommonName:   name,
+			CommonName:   commonName,
 		},
 		NotBefore: time.Now().AddDate(0, -1, 0),
 		NotAfter:  validUntil,
@@ -175,8 +177,8 @@ func (key *PrivateKey) TLSCertificateFor(
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 	}
 
-	// If name is an ip address, add it as an IP SAN
-	ip := net.ParseIP(name)
+	// If host is an ip address, add it as an IP SAN
+	ip := net.ParseIP(host)
 	if ip != nil {
 		template.IPAddresses = []net.IP{ip}
 	}
@@ -330,7 +332,7 @@ func (cert *Certificate) pemBlock() *pem.Block {
 // StoredPKAndCert returns a PK and certificate for the given host, storing
 // these at the given pkfile and certfile paths and using the stored values on
 // subsequence calls.
-func StoredPKAndCert(pkfile string, certfile string, organization string, name string) (*PrivateKey, *Certificate, error) {
+func StoredPKAndCert(pkfile string, certfile string, organization string, host string, commonName string) (*PrivateKey, *Certificate, error) {
 	pk, err := LoadPKFromFile(pkfile)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -352,7 +354,7 @@ func StoredPKAndCert(pkfile string, certfile string, organization string, name s
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Debugf("Creating new server cert at: %s", certfile)
-			cert, err = pk.TLSCertificateFor(organization, name, tenYearsFromToday, true, nil)
+			cert, err = pk.TLSCertificateFor(organization, host, commonName, tenYearsFromToday, true, nil)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -370,7 +372,7 @@ func StoredPKAndCert(pkfile string, certfile string, organization string, name s
 
 // KeyPairFor creates a key pair for the given host, pkfile and certfile. If
 // either pkfile or certfile is missing, default files will be created.
-func KeyPairFor(host, pkfile, certfile string) (tls.Certificate, error) {
+func KeyPairFor(host, commonName, pkfile, certfile string) (tls.Certificate, error) {
 	mypkfile := pkfile
 	if mypkfile == "" {
 		mypkfile = "key.pem"
@@ -387,7 +389,7 @@ func KeyPairFor(host, pkfile, certfile string) (tls.Certificate, error) {
 	_, err2 := os.Stat(ctx.PKFile)
 	if os.IsNotExist(err1) || os.IsNotExist(err2) {
 		fmt.Println("At least one of the Key/Cert files is not found -> Generating new key pair")
-		err := ctx.initPKAndCert(host)
+		err := ctx.initPKAndCert(host, commonName)
 		if err != nil {
 			return tls.Certificate{}, fmt.Errorf("Unable to init server cert: %s\n", err)
 		}
@@ -409,7 +411,7 @@ type certContext struct {
 }
 
 // initPKAndCert initializes a PK + cert, creating them if necessary.
-func (ctx *certContext) initPKAndCert(host string) (err error) {
+func (ctx *certContext) initPKAndCert(host string, commonName string) (err error) {
 	if ctx.PK, err = LoadPKFromFile(ctx.PKFile); err != nil {
 		if os.IsNotExist(err) {
 			fmt.Printf("Creating new PK at: %s\n", ctx.PKFile)
@@ -425,7 +427,7 @@ func (ctx *certContext) initPKAndCert(host string) (err error) {
 	}
 
 	fmt.Printf("Creating new cert for host %v at: %s\n", host, ctx.ServerCertFile)
-	ctx.ServerCert, err = ctx.PK.TLSCertificateFor("Lantern", host, tenYearsFromToday, true, nil)
+	ctx.ServerCert, err = ctx.PK.TLSCertificateFor("Lantern", host, commonName, tenYearsFromToday, true, nil)
 	if err != nil {
 		return
 	}
