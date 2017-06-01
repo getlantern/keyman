@@ -7,6 +7,24 @@ import (
 	"os/user"
 )
 
+// DeleteTrustedRootByName deletes a certificate from the user's trust store as a trusted
+// root CA by name.
+func DeleteTrustedRootByName(commonName string) error {
+	nssdb, err := getUserNssdb()
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command("certutil", "-d", nssdb, "-D", "-n", commonName)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("Unable to run certutil command: %s\n%s", err, out)
+	} else {
+		return nil
+	}
+	return err
+}
+
 // AddAsTrustedRoot adds the certificate to the user's trust store as a trusted
 // root CA.
 // Note - on Linux, this assumes the user is using Chrome.
