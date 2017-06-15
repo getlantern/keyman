@@ -148,8 +148,8 @@ func (key *PrivateKey) CertificateForKey(template *x509.Certificate, issuer *Cer
 // signatures.
 //
 //     organization: the org name for the cert.
-//     name:         used as the common name for the cert.  If name is an IP
-//                   address, it is also added as an IP SAN.
+//     name:         used as the common name for the cert. The name is also
+//                   added as SAN (IP SAN if it's an IP).
 //     validUntil:   time at which certificate expires
 //     isCA:         whether or not this cert is a CA
 //     issuer:       the certificate which is issuing the new cert.  If nil, the
@@ -179,6 +179,8 @@ func (key *PrivateKey) TLSCertificateFor(
 	ip := net.ParseIP(name)
 	if ip != nil {
 		template.IPAddresses = []net.IP{ip}
+	} else {
+		template.DNSNames = []string{name}
 	}
 
 	isSelfSigned := issuer == nil

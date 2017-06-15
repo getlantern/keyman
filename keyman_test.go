@@ -39,12 +39,23 @@ func TestRoundTrip(t *testing.T) {
 	assert.NoError(t, err, "Unable to load PK")
 	assert.Equal(t, pk.PEMEncoded(), pk2.PEMEncoded(), "Loaded PK didn't match saved PK")
 
-	cert, err := pk.TLSCertificateFor("Test Org", "127.0.0.1", time.Now().Add(TWO_WEEKS), true, nil)
+	cert, err := pk.TLSCertificateFor("Test Org", "testdomain.com", time.Now().Add(TWO_WEEKS), true, nil)
+	assert.NoError(t, err, "Unable to generate self-signed certificate")
+
+	numberOfDNSSans := len(cert.X509().DNSNames)
+	if numberOfDNSSans != 1 {
+		t.Errorf("Wrong number of DNS SANs, expected 1 got %d", numberOfDNSSans)
+	} else {
+		san := cert.X509().DNSNames[0]
+		assert.Equal(t, "testdomain.com", san, "Wrong DNS SAN")
+	}
+
+	cert, err = pk.TLSCertificateFor("Test Org", "127.0.0.1", time.Now().Add(TWO_WEEKS), true, nil)
 	assert.NoError(t, err, "Unable to generate self-signed certificate")
 
 	numberOfIPSANs := len(cert.X509().IPAddresses)
 	if numberOfIPSANs != 1 {
-		t.Errorf("Wrong number of SANs, expected 1 got %d", numberOfIPSANs)
+		t.Errorf("Wrong number of IP SANs, expected 1 got %d", numberOfIPSANs)
 	} else {
 		ip := cert.X509().IPAddresses[0]
 		expectedIP := net.ParseIP("127.0.0.1")
