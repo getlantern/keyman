@@ -124,7 +124,7 @@ int wmain(int argc, wchar_t *argv[], wchar_t *envp[])
 		CERT_STORE_PROV_SYSTEM,
 		X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
 		0,
-		CERT_SYSTEM_STORE_LOCAL_MACHINE,
+		CERT_SYSTEM_STORE_CURRENT_USER,
 		storeName);
 	if (store == NULL) {
 		wcerr << "Unable to open " << storeName << " cert store: " << GetLastError() << endl;
