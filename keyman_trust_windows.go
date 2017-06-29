@@ -28,9 +28,8 @@ func init() {
 	}
 }
 
-// AddAsTrustedRoot adds the certificate to the user's trust store as a trusted
-// root CA.
-func (cert *Certificate) AddAsTrustedRoot() error {
+// InstallToUserKeyChain adds the certificate to the user's keychain.
+func (cert *Certificate) InstallToUserKeyChain() error {
 	// Create a temp file containing the certificate
 	tempFile, err := ioutil.TempFile("", "tempCert")
 	defer os.Remove(tempFile.Name())
