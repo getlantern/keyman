@@ -21,7 +21,7 @@ func (cert *Certificate) InstallToUserKeyChain() error {
 	}
 
 	// Add it as a trusted cert
-	cmd := exec.Command("security", "add-trusted-cert", "-d", "-k", keychainPath(), tempFileName)
+	cmd := exec.Command("security", "add-trusted-cert", "-k", keychainPath(), tempFileName)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Unable to run security command: %s\n%s", err, out)
