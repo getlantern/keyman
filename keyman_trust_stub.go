@@ -6,9 +6,8 @@ import (
 	"fmt"
 )
 
-// AddAsTrustedRoot adds the certificate to the user's trust store as a trusted
-// root CA.
-func (cert *Certificate) AddAsTrustedRoot() error {
+// InstallToUserKeyChain adds the certificate to the user's keychain.
+func (cert *Certificate) InstallToUserKeyChain() error {
 	return fmt.Errorf("AddToUserTrustStore is not supported on this platform")
 }
 

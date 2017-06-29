@@ -7,10 +7,9 @@ import (
 	"os/user"
 )
 
-// AddAsTrustedRoot adds the certificate to the user's trust store as a trusted
-// root CA.
+// InstallToUserKeyChain adds the certificate to the user's keychain.
 // Note - on Linux, this assumes the user is using Chrome.
-func (cert *Certificate) AddAsTrustedRoot() error {
+func (cert *Certificate) InstallToUserKeyChain() error {
 	tempFileName, err := cert.WriteToTempFile()
 	defer os.Remove(tempFileName)
 	if err != nil {

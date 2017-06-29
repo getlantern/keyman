@@ -4,18 +4,12 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-
-	"github.com/getlantern/elevate"
+	"os/user"
+	"path/filepath"
 )
 
-const (
-	// TODO: Make sure to handle case where library is on a different path
-	OSX_SYSTEM_KEYCHAIN_PATH = "/Library/Keychains/System.keychain"
-)
-
-// AddAsTrustedRoot adds the certificate to the user's trust store as a trusted
-// root CA.
-func (cert *Certificate) AddAsTrustedRoot() error {
+// InstallToUserKeyChain adds the certificate to the user's keychain.
+func (cert *Certificate) InstallToUserKeyChain() error {
 	tempFileName, err := cert.WriteToTempFile()
 	defer func() {
 		if err := os.Remove(tempFileName); err != nil {
@@ -27,7 +21,7 @@ func (cert *Certificate) AddAsTrustedRoot() error {
 	}
 
 	// Add it as a trusted cert
-	cmd := elevate.WithPrompt("Please allow Lantern to install its custom certificate authority").Command("security", "add-trusted-cert", "-d", "-k", OSX_SYSTEM_KEYCHAIN_PATH, tempFileName)
+	cmd := exec.Command("security", "add-trusted-cert", "-d", "-k", keychainPath(), tempFileName)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Unable to run security command: %s\n%s", err, out)
@@ -41,9 +35,14 @@ func (cert *Certificate) AddAsTrustedRoot() error {
 // true if there are one or more certs in the system keychain whose common name
 // matches this cert.
 func (cert *Certificate) IsInstalled() (bool, error) {
-	cmd := exec.Command("security", "find-certificate", "-c", cert.X509().Subject.CommonName, OSX_SYSTEM_KEYCHAIN_PATH)
+	cmd := exec.Command("security", "find-certificate", "-c", cert.X509().Subject.CommonName, keychainPath())
 	err := cmd.Run()
 
 	found := err == nil
 	return found, nil
+}
+
+func keychainPath() string {
+	usr, _ := user.Current()
+	return filepath.Join(usr.HomeDir, "Library", "Keychains", "login.keychain")
 }
