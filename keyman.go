@@ -147,22 +147,22 @@ func (key *PrivateKey) CertificateForKey(template *x509.Certificate, issuer *Cer
 // given parameters.  These certs are usable for key encipherment and digital
 // signatures.
 //
-//     organization: the org name for the cert.
-//     host:         used as the hostname for the cert.  If host is an IP
-//                   address, it is also added as an IP SAN.
-//     commonName:   used as the common name for the cert.
 //     validUntil:   time at which certificate expires
 //     isCA:         whether or not this cert is a CA
 //     issuer:       the certificate which is issuing the new cert.  If nil, the
 //                   new cert will be a self-signed CA certificate.
+//     organization: the org name for the cert.
+//     commonName:   used as the common name for the cert.
+//     hosts:        used to populate either the DNS names or the IP SANs. If
+//                   none specified, defaults to using commonName as a DNS SAN.
 //
 func (key *PrivateKey) TLSCertificateFor(
-	organization string,
-	host string,
-	commonName string,
 	validUntil time.Time,
 	isCA bool,
-	issuer *Certificate) (cert *Certificate, err error) {
+	issuer *Certificate,
+	organization string,
+	commonName string,
+	hosts ...string) (cert *Certificate, err error) {
 
 	template := &x509.Certificate{
 		SerialNumber: new(big.Int).SetInt64(int64(time.Now().UnixNano())),
@@ -177,10 +177,18 @@ func (key *PrivateKey) TLSCertificateFor(
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 	}
 
-	// If host is an ip address, add it as an IP SAN
-	ip := net.ParseIP(host)
-	if ip != nil {
-		template.IPAddresses = []net.IP{ip}
+	if len(hosts) == 0 {
+		hosts = []string{commonName}
+	}
+
+	for _, host := range hosts {
+		// If host is an ip address, add it as an IP SAN
+		ip := net.ParseIP(host)
+		if ip != nil {
+			template.IPAddresses = append(template.IPAddresses, ip)
+		} else {
+			template.DNSNames = append(template.DNSNames, host)
+		}
 	}
 
 	isSelfSigned := issuer == nil
@@ -354,7 +362,7 @@ func StoredPKAndCert(pkfile string, certfile string, organization string, host s
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Debugf("Creating new server cert at: %s", certfile)
-			cert, err = pk.TLSCertificateFor(organization, host, commonName, tenYearsFromToday, true, nil)
+			cert, err = pk.TLSCertificateFor(tenYearsFromToday, true, nil, organization, commonName, host)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -427,7 +435,7 @@ func (ctx *certContext) initPKAndCert(host string, commonName string) (err error
 	}
 
 	fmt.Printf("Creating new cert for host %v at: %s\n", host, ctx.ServerCertFile)
-	ctx.ServerCert, err = ctx.PK.TLSCertificateFor("Lantern", host, commonName, tenYearsFromToday, true, nil)
+	ctx.ServerCert, err = ctx.PK.TLSCertificateFor(tenYearsFromToday, true, nil, "Lantern", commonName, host)
 	if err != nil {
 		return
 	}

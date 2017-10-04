@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+
+	"github.com/getlantern/elevate"
 )
 
 const (
@@ -39,7 +41,7 @@ func (cert *Certificate) AddAsTrustedRoot() error {
 	}
 
 	// Add it as a trusted cert
-	cmd := exec.Command("security", "add-trusted-cert", "-d", "-k", OSX_SYSTEM_KEYCHAIN_PATH, tempFileName)
+	cmd := elevate.WithPrompt("Please allow Lantern to install its custom certificate authority").Command("security", "add-trusted-cert", "-d", "-k", OSX_SYSTEM_KEYCHAIN_PATH, tempFileName)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Unable to run security command: %s\n%s", err, out)
