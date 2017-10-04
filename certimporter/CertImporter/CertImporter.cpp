@@ -24,18 +24,18 @@ const int STATUS_BAD_PARAMS = 99;
  *
  * See http://msdn.microsoft.com/en-us/library/windows/desktop/aa382363(v=vs.85).aspx
  */
-int checkExists(HCERTSTORE store, LPCWSTR expectedName) {
+int checkExists(HCERTSTORE store, LPCWSTR commonName) {
 	PCCERT_CONTEXT cert = CertFindCertificateInStore(
 		store,
 		X509_ASN_ENCODING,
 		0,                
 		CERT_FIND_SUBJECT_STR,
-		expectedName,
+		commonName,
 		NULL);
 	if (cert) {
 		return 0;
 	}
-	wcerr << "No certificate was found with common name " << expectedName;
+	wcerr << "No certificate was found with common name " << commonName;
 	return 2;
 }
 
@@ -92,6 +92,25 @@ int addCert(HCERTSTORE store, LPCWSTR certFileName) {
 	return 0;
 }
 
+int deleteCert(HCERTSTORE store, LPCWSTR commonName) {
+	PCCERT_CONTEXT cert = CertFindCertificateInStore(
+		store,
+		X509_ASN_ENCODING,
+		0,
+		CERT_FIND_SUBJECT_STR,
+		commonName,
+		NULL);
+
+	if (cert) {
+		if (CertDeleteCertificateFromStore(cert) == FALSE) {
+			wcerr << "Failed to delete certificate with common name " << commonName;
+			return 5;
+		}
+		CertFreeCertificateContext(cert);
+	}
+	return 0;
+}
+
 // See http://www.idrix.fr/Root/Samples/capi_pem.cpp for the basis of this
 int wmain(int argc, wchar_t *argv[], wchar_t *envp[])
 {
@@ -109,8 +128,12 @@ int wmain(int argc, wchar_t *argv[], wchar_t *envp[])
 	int(*actionFn)(HCERTSTORE, LPCWSTR);
 	if (wcsncmp(action, L"find", 4) == 0) {
 		actionFn = checkExists;
-	} else if (wcsncmp(action, L"add", 3) == 0) {
+	}
+	else if (wcsncmp(action, L"add", 3) == 0) {
 		actionFn = addCert;
+	} 
+	else if (wcsncmp(action, L"delete", 6) == 0) {
+		actionFn = deleteCert;
 	} else {
 		cerr << "Invalid action: " << action << endl;
 		return STATUS_BAD_PARAMS;

@@ -6,6 +6,10 @@ import (
 	"fmt"
 )
 
+func DeleteTrustedRootByName(commonName string) error {
+	return fmt.Errorf("DeleteTrustedRootByName is not supported on this platform")
+}
+
 // AddAsTrustedRoot adds the certificate to the user's trust store as a trusted
 // root CA.
 func (cert *Certificate) AddAsTrustedRoot() error {

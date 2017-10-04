@@ -13,6 +13,20 @@ const (
 	OSX_SYSTEM_KEYCHAIN_PATH = "/Library/Keychains/System.keychain"
 )
 
+// DeleteTrustedRootByName deletes a certificate from the user's trust store as a trusted
+// root CA by name.
+func DeleteTrustedRootByName(commonName string) error {
+    cmd := exec.Command("security", "delete-certificate", "-c", commonName, OSX_SYSTEM_KEYCHAIN_PATH)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("Unable to run security command: %s\n%s", err, out)
+	} else {
+		return nil
+	}
+
+	return err
+}
+
 // AddAsTrustedRoot adds the certificate to the user's trust store as a trusted
 // root CA.
 func (cert *Certificate) AddAsTrustedRoot() error {
