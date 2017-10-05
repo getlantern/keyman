@@ -28,19 +28,18 @@ func init() {
 	}
 }
 
-func DeleteTrustedRootByName(commonName string) error {
+func DeleteTrustedRootByName(commonName string, prompt string) error {
 	cmd := cebe.Command("delete", ROOT_CERT_STORE_NAME, commonName)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Unable to run certimporter.exe: %s\n%s", err, out)
-	} else {
-		return nil
 	}
+	return nil
 }
 
 // AddAsTrustedRoot adds the certificate to the user's trust store as a trusted
 // root CA.
-func (cert *Certificate) AddAsTrustedRoot() error {
+func (cert *Certificate) AddAsTrustedRoot(prompt string) error {
 	// Create a temp file containing the certificate
 	tempFile, err := ioutil.TempFile("", "tempCert")
 	defer os.Remove(tempFile.Name())

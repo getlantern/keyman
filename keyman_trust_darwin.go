@@ -13,23 +13,16 @@ const (
 	OSX_SYSTEM_KEYCHAIN_PATH = "/Library/Keychains/System.keychain"
 )
 
-// DeleteTrustedRootByName deletes a certificate from the user's trust store as a trusted
-// root CA by name.
-func DeleteTrustedRootByName(commonName string) error {
-    cmd := exec.Command("security", "delete-certificate", "-c", commonName, OSX_SYSTEM_KEYCHAIN_PATH)
+func DeleteTrustedRootByName(commonName string, prompt string) error {
+	cmd := cmdFunction(prompt)("security", "delete-certificate", "-c", commonName, OSX_SYSTEM_KEYCHAIN_PATH)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Unable to run security command: %s\n%s", err, out)
-	} else {
-		return nil
 	}
-
-	return err
+	return nil
 }
 
-// AddAsTrustedRoot adds the certificate to the user's trust store as a trusted
-// root CA.
-func (cert *Certificate) AddAsTrustedRoot() error {
+func (cert *Certificate) AddAsTrustedRoot(prompt string) error {
 	tempFileName, err := cert.WriteToTempFile()
 	defer func() {
 		if err := os.Remove(tempFileName); err != nil {
@@ -41,7 +34,7 @@ func (cert *Certificate) AddAsTrustedRoot() error {
 	}
 
 	// Add it as a trusted cert
-	cmd := elevate.WithPrompt("Please allow Lantern to install its custom certificate authority").Command("security", "add-trusted-cert", "-d", "-k", OSX_SYSTEM_KEYCHAIN_PATH, tempFileName)
+	cmd := cmdFunction(prompt)("security", "add-trusted-cert", "-d", "-k", OSX_SYSTEM_KEYCHAIN_PATH, tempFileName)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Unable to run security command: %s\n%s", err, out)
@@ -60,4 +53,12 @@ func (cert *Certificate) IsInstalled() (bool, error) {
 
 	found := err == nil
 	return found, nil
+}
+
+func cmdFunction(prompt string) func(name string, args ...string) *exec.Cmd {
+	if prompt == "" {
+		return exec.Command
+	} else {
+		return elevate.WithPrompt(prompt).Command
+	}
 }
