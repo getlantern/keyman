@@ -8,4 +8,6 @@ certimporter/CertImporter/Release/
 certimporter/Debug/
 certimporter/Release/certimporter.pdb
 certimporter/UpgradeLog.htm
+certimporter/CertImporter.suo
+certimporter/CertImporter/CertImporter.vcproj.*
 keyman.test.exe
