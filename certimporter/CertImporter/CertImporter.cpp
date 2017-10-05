@@ -28,7 +28,7 @@ int checkExists(HCERTSTORE store, LPCWSTR commonName) {
 	PCCERT_CONTEXT cert = CertFindCertificateInStore(
 		store,
 		X509_ASN_ENCODING,
-		0,                
+		0,
 		CERT_FIND_SUBJECT_STR,
 		commonName,
 		NULL);
@@ -37,6 +37,23 @@ int checkExists(HCERTSTORE store, LPCWSTR commonName) {
 	}
 	wcerr << "No certificate was found with common name " << commonName;
 	return 2;
+}
+
+void reportWindowsError(const char* action) {
+  LPTSTR pErrMsg = NULL;
+  DWORD errCode = GetLastError();
+  FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER|
+      FORMAT_MESSAGE_IGNORE_INSERTS |
+      FORMAT_MESSAGE_FROM_HMODULE|
+      FORMAT_MESSAGE_FROM_SYSTEM|
+      FORMAT_MESSAGE_ARGUMENT_ARRAY,
+      GetModuleHandle(_T("crypt32.dll")),
+      errCode,
+      LANG_NEUTRAL,
+      pErrMsg,
+      0,
+      NULL);
+  fprintf(stderr, "Error %s: %lu %s\n", action, errCode, pErrMsg);
 }
 
 /**
@@ -72,10 +89,7 @@ int addCert(HCERTSTORE store, LPCWSTR certFileName) {
 		(BYTE *)memblock,
 		size);
 	if (cert == NULL) {
-		wchar_t err_buf[256];
-		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), 
-              MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), err_buf, 256, NULL);
-		wcerr << "Unable to create CertCreateCertificateContext: " << GetLastError() << " " << err_buf << " data: " << memblock << endl;
+		reportWindowsError("CertCreateCertificateContext");
 		return 3;
 	}
 
@@ -85,10 +99,12 @@ int addCert(HCERTSTORE store, LPCWSTR certFileName) {
 		CERT_STORE_ADD_REPLACE_EXISTING,
 		NULL
 		) == FALSE) {
-		wcerr << "CertAddCertificateContextToStore error: " << GetLastError() << endl;
+		reportWindowsError("CertAddCertificateContextToStore");
+		CertFreeCertificateContext(cert);
 		return 4;
 	}
 
+	CertFreeCertificateContext(cert);
 	return 0;
 }
 
@@ -103,10 +119,13 @@ int deleteCert(HCERTSTORE store, LPCWSTR commonName) {
 
 	if (cert) {
 		if (CertDeleteCertificateFromStore(cert) == FALSE) {
-			wcerr << "Failed to delete certificate with common name " << commonName;
+			reportWindowsError("CertDeleteCertificateFromStore");
 			return 5;
 		}
 		CertFreeCertificateContext(cert);
+	} else {
+		cerr << "No certificate found";
+		return 6;
 	}
 	return 0;
 }
@@ -131,7 +150,7 @@ int wmain(int argc, wchar_t *argv[], wchar_t *envp[])
 	}
 	else if (wcsncmp(action, L"add", 3) == 0) {
 		actionFn = addCert;
-	} 
+	}
 	else if (wcsncmp(action, L"delete", 6) == 0) {
 		actionFn = deleteCert;
 	} else {
@@ -150,7 +169,7 @@ int wmain(int argc, wchar_t *argv[], wchar_t *envp[])
 		CERT_SYSTEM_STORE_LOCAL_MACHINE,
 		storeName);
 	if (store == NULL) {
-		wcerr << "Unable to open " << storeName << " cert store: " << GetLastError() << endl;
+		reportWindowsError("CertOpenStore");
 		return 1;
 	}
 

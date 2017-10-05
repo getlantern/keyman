@@ -1,7 +1,7 @@
 keyman [![Travis CI Status](https://travis-ci.org/getlantern/keyman.svg?branch=master)](https://travis-ci.org/getlantern/keyman)&nbsp;[![Coverage Status](https://coveralls.io/repos/getlantern/keyman/badge.png)](https://coveralls.io/r/getlantern/keyman)&nbsp;[![GoDoc](https://godoc.org/github.com/getlantern/keyman?status.png)](http://godoc.org/github.com/getlantern/keyman)
 ======
 
-Easy golang RSA key and certificate management. 
+Easy golang RSA key and certificate management.
 
 API documentation available on [godoc](https://godoc.org/github.com/getlantern/keyman).
 
@@ -16,7 +16,7 @@ The resulting executable is packaged into go using
 command inside the [certimporter](certimporter) folder:
 
 ```bash
-go-bindata -nomemcopy -nocompress -prefix Release -o ./certimporter.go -pkg certimporter Release
+rm Release/*.pdb && go-bindata -nomemcopy -nocompress -prefix Release -o ./certimporter.go -pkg certimporter Release
 ```
 
 Note the use of `-nocompress` - we do this so that the resulting executable can
