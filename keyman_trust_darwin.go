@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-
-	"github.com/getlantern/elevate"
 )
 
 const (
@@ -14,7 +12,7 @@ const (
 )
 
 func DeleteTrustedRootByName(commonName string, prompt string) error {
-	cmd := cmdFunction(prompt)("security", "delete-certificate", "-c", commonName, OSX_SYSTEM_KEYCHAIN_PATH)
+	cmd := elevatedIfNecessary(prompt)("security", "delete-certificate", "-c", commonName, OSX_SYSTEM_KEYCHAIN_PATH)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Unable to run security command: %s\n%s", err, out)
@@ -33,12 +31,23 @@ func (cert *Certificate) AddAsTrustedRoot(prompt string) error {
 		return fmt.Errorf("Unable to create temp file: %s", err)
 	}
 
+	cmd := exec.Command("security", "verify-cert", "-c", tempFileName)
+	_, err = cmd.CombinedOutput()
+	if err == nil {
+		// certificate verified successfully so it's already a trusted root, no need
+		// to install.
+		return nil
+	}
+
 	// Add it as a trusted cert
-	cmd := cmdFunction(prompt)("security", "add-trusted-cert", "-d", "-k", OSX_SYSTEM_KEYCHAIN_PATH, tempFileName)
+	cmd = elevatedIfNecessary(prompt)("security", "add-trusted-cert", "-d", "-k", OSX_SYSTEM_KEYCHAIN_PATH, tempFileName)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Unable to run security command: %s\n%s", err, out)
 	} else {
+		cmd := exec.Command("security", "verify-cert", "-c", tempFileName)
+		out, err := cmd.CombinedOutput()
+		log.Debugf("%v: %v", out, err)
 		return nil
 	}
 }
@@ -53,12 +62,4 @@ func (cert *Certificate) IsInstalled() (bool, error) {
 
 	found := err == nil
 	return found, nil
-}
-
-func cmdFunction(prompt string) func(name string, args ...string) *exec.Cmd {
-	if prompt == "" {
-		return exec.Command
-	} else {
-		return elevate.WithPrompt(prompt).Command
-	}
 }

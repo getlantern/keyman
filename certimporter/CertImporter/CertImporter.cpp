@@ -39,6 +39,25 @@ int checkExists(HCERTSTORE store, LPCWSTR commonName) {
 	return 2;
 }
 
+/**
+ * Checks whether a certificate with the expected SHA1 exists in the specified
+ * certificate store.
+ */
+int checkExistsSHA(HCERTSTORE store, LPCWSTR sha1) {
+	PCCERT_CONTEXT cert = CertFindCertificateInStore(
+		store,
+		X509_ASN_ENCODING,
+		0,
+		CERT_FIND_SUBJECT_STR,
+		commonName,
+		NULL);
+	if (cert) {
+		return 0;
+	}
+	wcerr << "No certificate was found with common name " << commonName;
+	return 2;
+}
+
 void reportWindowsError(const char* action) {
   LPTSTR pErrMsg = NULL;
   DWORD errCode = GetLastError();

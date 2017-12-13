@@ -20,7 +20,7 @@ func main() {
 		log.Fatalf("Unable to generate PK: %v", err)
 	}
 
-	cert, err := pk.TLSCertificateFor(time.Now().Add(24*time.Hour), false, nil, "Lantern", commonName)
+	cert, err := pk.TLSCertificateFor(time.Now().Add(24*time.Hour), false, nil, "Lantern", commonName, "san1.com", "san2.com")
 	if err != nil {
 		log.Fatalf("Unable to generate certificate: %v", err)
 	}
@@ -28,6 +28,11 @@ func main() {
 	err = cert.AddAsTrustedRoot(fmt.Sprintf("Please allow trustdemo to install a certificate for %v", commonName))
 	if err != nil {
 		log.Fatalf("Unable to add as trusted root: %v", err)
+	}
+
+	err = cert.AddAsTrustedRoot(fmt.Sprintf("You should not have been prompted to reinstall %v!", commonName))
+	if err != nil {
+		log.Fatalf("Unable to re-add as trusted root: %v", err)
 	}
 
 	in := bufio.NewReader(os.Stdin)

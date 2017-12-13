@@ -29,7 +29,7 @@ func init() {
 }
 
 func DeleteTrustedRootByName(commonName string, prompt string) error {
-	cmd := cebe.Command("delete", ROOT_CERT_STORE_NAME, commonName)
+	cmd := elevatedIfNecessary(prompt)(cebe.Filename, "delete", ROOT_CERT_STORE_NAME, commonName)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Unable to run certimporter.exe: %s\n%s", err, out)
@@ -52,7 +52,7 @@ func (cert *Certificate) AddAsTrustedRoot(prompt string) error {
 	}
 
 	// Add it as a trusted cert
-	cmd := cebe.Command("add", ROOT_CERT_STORE_NAME, tempFile.Name())
+	cmd := elevatedIfNecessary(prompt)(cebe.Filename, "add", ROOT_CERT_STORE_NAME, tempFile.Name())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Unable to run certimporter.exe: %s\n%s", err, out)
