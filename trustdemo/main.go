@@ -35,6 +35,16 @@ func main() {
 		log.Fatalf("Unable to re-add as trusted root: %v", err)
 	}
 
+	isInstalled, err := cert.IsInstalled()
+	if err != nil {
+		log.Fatalf("Unable to check if cert is installed: %v", err)
+	}
+	if isInstalled {
+		log.Println("Cert was correctly detected as installed")
+	} else {
+		log.Println("Cert doesn't show as being installed even though it should")
+	}
+
 	in := bufio.NewReader(os.Stdin)
 	fmt.Printf("Installed certificate with common name %v, hit Enter to continue ...", commonName)
 	in.ReadString('\n')

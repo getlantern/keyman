@@ -39,25 +39,6 @@ int checkExists(HCERTSTORE store, LPCWSTR commonName) {
 	return 2;
 }
 
-/**
- * Checks whether a certificate with the expected SHA1 exists in the specified
- * certificate store.
- */
-int checkExistsSHA(HCERTSTORE store, LPCWSTR sha1) {
-	PCCERT_CONTEXT cert = CertFindCertificateInStore(
-		store,
-		X509_ASN_ENCODING,
-		0,
-		CERT_FIND_SUBJECT_STR,
-		commonName,
-		NULL);
-	if (cert) {
-		return 0;
-	}
-	wcerr << "No certificate was found with common name " << commonName;
-	return 2;
-}
-
 void reportWindowsError(const char* action) {
   LPTSTR pErrMsg = NULL;
   DWORD errCode = GetLastError();
@@ -164,8 +145,10 @@ int wmain(int argc, wchar_t *argv[], wchar_t *envp[])
 
 	// Figure out which action to take
 	int(*actionFn)(HCERTSTORE, LPCWSTR);
+	DWORD additionalOpenFlags = 0;
 	if (wcsncmp(action, L"find", 4) == 0) {
 		actionFn = checkExists;
+		additionalOpenFlags = CERT_STORE_READONLY_FLAG;
 	}
 	else if (wcsncmp(action, L"add", 3) == 0) {
 		actionFn = addCert;
@@ -185,7 +168,7 @@ int wmain(int argc, wchar_t *argv[], wchar_t *envp[])
 		CERT_STORE_PROV_SYSTEM,
 		X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
 		0,
-		CERT_SYSTEM_STORE_LOCAL_MACHINE,
+		CERT_SYSTEM_STORE_LOCAL_MACHINE | additionalOpenFlags,
 		storeName);
 	if (store == NULL) {
 		reportWindowsError("CertOpenStore");
