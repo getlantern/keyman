@@ -11,7 +11,7 @@ const (
 	OSX_SYSTEM_KEYCHAIN_PATH = "/Library/Keychains/System.keychain"
 )
 
-func DeleteTrustedRootByName(commonName string, prompt string) error {
+func DeleteTrustedRootByName(commonName string, prompt string, additionalPrompt string) error {
 	cmd := elevatedIfNecessary(prompt)("security", "delete-certificate", "-c", commonName, OSX_SYSTEM_KEYCHAIN_PATH)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -20,7 +20,7 @@ func DeleteTrustedRootByName(commonName string, prompt string) error {
 	return nil
 }
 
-func (cert *Certificate) AddAsTrustedRoot(prompt string) error {
+func (cert *Certificate) AddAsTrustedRoot(prompt string, additionalPrompt string) error {
 	tempFileName, err := cert.WriteToTempFile()
 	defer func() {
 		if err := os.Remove(tempFileName); err != nil {

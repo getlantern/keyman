@@ -7,7 +7,7 @@ import (
 	"os/user"
 )
 
-func DeleteTrustedRootByName(commonName string, prompt string) error {
+func DeleteTrustedRootByName(commonName string, prompt string, additionalPrompt string) error {
 	nssdb, err := getUserNssdb()
 	if err != nil {
 		return err
@@ -24,7 +24,7 @@ func DeleteTrustedRootByName(commonName string, prompt string) error {
 // AddAsTrustedRoot adds the certificate to the user's trust store as a trusted
 // root CA.
 // Note - on Linux, this assumes the user is using Chrome.
-func (cert *Certificate) AddAsTrustedRoot(prompt string) error {
+func (cert *Certificate) AddAsTrustedRoot(prompt string, additionalPrompt string) error {
 	tempFileName, err := cert.WriteToTempFile()
 	defer os.Remove(tempFileName)
 	if err != nil {
