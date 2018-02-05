@@ -13,8 +13,10 @@ import (
 	"math/big"
 	"net"
 	"os"
+	"os/exec"
 	"time"
 
+	"github.com/getlantern/elevate"
 	"github.com/getlantern/golog"
 )
 
@@ -444,4 +446,12 @@ func (ctx *certContext) initPKAndCert(host string, commonName string) (err error
 		return
 	}
 	return nil
+}
+
+func elevatedIfNecessary(prompt string) func(name string, args ...string) *exec.Cmd {
+	if prompt == "" {
+		return exec.Command
+	} else {
+		return elevate.WithPrompt(prompt).Command
+	}
 }
