@@ -35,6 +35,12 @@ func main() {
 		}
 	}
 
+	isInstalled, err := cert.IsInstalled()
+	if err != nil {
+		log.Fatalf("Unable to check if cert is installed: %v", err)
+	}
+	log.Printf("Installed initially? : %v\n", isInstalled)
+
 	err = cert.AddAsTrustedRoot(fmt.Sprintf("Please allow trustdemo to install a certificate for %v", commonName))
 	if err != nil {
 		log.Fatalf("Unable to add as trusted root: %v", err)
@@ -45,7 +51,7 @@ func main() {
 		log.Fatalf("Unable to re-add as trusted root: %v", err)
 	}
 
-	isInstalled, err := cert.IsInstalled()
+	isInstalled, err = cert.IsInstalled()
 	if err != nil {
 		log.Fatalf("Unable to check if cert is installed: %v", err)
 	}

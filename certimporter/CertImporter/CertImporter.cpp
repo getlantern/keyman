@@ -106,7 +106,7 @@ int addCert(HCERTSTORE store, LPCWSTR certFileName) {
 	}
 
 	CertFreeCertificateContext(cert);
-	return 0;
+	return 5;
 }
 
 int deleteCert(HCERTSTORE store, LPCWSTR commonName) {
@@ -125,7 +125,7 @@ int deleteCert(HCERTSTORE store, LPCWSTR commonName) {
 		}
 		CertFreeCertificateContext(cert);
 	} else {
-		cerr << "No certificate found";
+		wcerr << "No certificate found";
 		return 6;
 	}
 	return 0;
@@ -137,14 +137,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	int argc = 0;
 	LPWSTR* argv = CommandLineToArgvW(pCmdLine, &argc);
 	// Parse arguments
-	if (argc < 4) {
+	if (argc < 3) {
 		cerr << "Not enough arguments" << endl;
 		return STATUS_BAD_PARAMS;
 	}
 
-	LPCWSTR action = argv[1];
-	LPCWSTR storeName = argv[2];
-	LPCWSTR actionData = argv[3];
+	LPCWSTR action = argv[0];
+	LPCWSTR storeName = argv[1];
+	LPCWSTR actionData = argv[2];
 
 	// Figure out which action to take
 	int(*actionFn)(HCERTSTORE, LPCWSTR);
