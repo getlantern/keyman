@@ -11,6 +11,7 @@
 #include <Wincrypt.h>
 #include <iostream>
 #include <fstream>
+#include <tchar.h>
 #pragma comment(lib, "crypt32.lib")
 
 using namespace std;
@@ -131,8 +132,10 @@ int deleteCert(HCERTSTORE store, LPCWSTR commonName) {
 }
 
 // See http://www.idrix.fr/Root/Samples/capi_pem.cpp for the basis of this
-int wmain(int argc, wchar_t *argv[], wchar_t *envp[])
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
+	int argc = 0;
+	LPWSTR* argv = CommandLineToArgvW(pCmdLine, &argc);
 	// Parse arguments
 	if (argc < 4) {
 		cerr << "Not enough arguments" << endl;
