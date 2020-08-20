@@ -183,6 +183,7 @@ func (key *PrivateKey) TLSCertificateFor(
 		hosts = []string{commonName}
 	}
 
+	cnInHosts := false
 	for _, host := range hosts {
 		// If host is an ip address, add it as an IP SAN
 		ip := net.ParseIP(host)
@@ -191,6 +192,14 @@ func (key *PrivateKey) TLSCertificateFor(
 		} else {
 			template.DNSNames = append(template.DNSNames, host)
 		}
+		if host == commonName {
+			cnInHosts = true
+		}
+	}
+	if !cnInHosts {
+		// Add the common name as a DNS SAN, otherwise it will be ignored.
+		// https://github.com/golang/go/issues/24293
+		template.DNSNames = append(template.DNSNames, commonName)
 	}
 
 	isSelfSigned := issuer == nil
