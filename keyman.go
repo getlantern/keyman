@@ -59,14 +59,19 @@ func GeneratePK(bits int) (key *PrivateKey, err error) {
 
 // LoadPKFromFile loads a PEM-encoded PrivateKey from a file
 func LoadPKFromFile(filename string) (key *PrivateKey, err error) {
-	privateKeyData, err := ioutil.ReadFile(filename)
+	pemBytes, err := ioutil.ReadFile(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, err
 		}
 		return nil, fmt.Errorf("Unable to read private key file from file %s: %s", filename, err)
 	}
-	block, _ := pem.Decode(privateKeyData)
+	return LoadPKFromPEMBytes(pemBytes)
+}
+
+// LoadPKFromPEMBytes loads a PEM-encoded PrivateKey from the PEM bytes
+func LoadPKFromPEMBytes(pemBytes []byte) (key *PrivateKey, err error) {
+	block, _ := pem.Decode(pemBytes)
 	if block == nil {
 		return nil, fmt.Errorf("Unable to decode PEM encoded private key data: %s", err)
 	}
