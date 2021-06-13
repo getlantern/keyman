@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 )
 
@@ -25,13 +24,11 @@ func DeleteTrustedRootByName(commonName string, prompt string) error {
 			return fmt.Errorf("Unable to run certutil command: %s\n%s", err, out)
 		}
 		return nil
-
 	})
 }
 
 // AddAsTrustedRoot adds the certificate to the user's trust store as a trusted
-// root CA.
-// Note - on Linux, this assumes the user is using Chrome.
+// root CA. Supports Chrome and Firefox
 func (cert *Certificate) AddAsTrustedRoot(prompt string) error {
 	tempFileName, err := cert.WriteToTempFile()
 	defer os.Remove(tempFileName)
@@ -49,7 +46,6 @@ func (cert *Certificate) AddAsTrustedRoot(prompt string) error {
 		}
 		return nil
 	})
-
 }
 
 func pathExists(path string) bool {
@@ -74,11 +70,6 @@ func forEachNSSProfile(f func(profile string) error) error {
 			}
 		}
 	}
-	if usr, err := user.Current(); err == nil {
-		if err := f("sql:" + usr.HomeDir + "/.pki/nssdb"); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -87,15 +78,16 @@ func forEachNSSProfile(f func(profile string) error) error {
 // true if there are one or more certs in the nssdb whose common name
 // matches this cert.
 func (cert *Certificate) IsInstalled() (bool, error) {
-	//nssdb, err := getUserNssdb()
-	//if err != nil {
-	//	return false, err
-	//}
-	//
-	//cmd := exec.Command("certutil", "-d", nssdb, "-L", "-n", cert.X509().Subject.CommonName)
-	//err = cmd.Run()
-	//
-	//found := err == nil
-	//return found, nil
-	return false, nil
+	found := false
+	err := forEachNSSProfile(func(profile string) error {
+		cmd := exec.Command("certutil", "-d", profile, "-L", "-n", cert.X509().Subject.CommonName)
+		err := cmd.Run()
+
+		if err == nil {
+			found = true
+		}
+		return nil
+	})
+
+	return found, err
 }
