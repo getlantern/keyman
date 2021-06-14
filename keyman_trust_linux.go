@@ -21,7 +21,7 @@ func DeleteTrustedRootByName(commonName string, prompt string) error {
 		cmd := exec.Command("certutil", "-d", profile, "-D", "-n", commonName)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			return fmt.Errorf("Unable to run certutil command: %s\n%s", err, out)
+			return fmt.Errorf("Unable to run certutil command: %w\n%s", err, out)
 		}
 		return nil
 	})
@@ -42,7 +42,7 @@ func (cert *Certificate) AddAsTrustedRoot(prompt string) error {
 		cmd := exec.Command("certutil", "-d", profile, "-A", "-t", "C,,", "-n", cert.X509().Subject.CommonName, "-i", tempFileName)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			return fmt.Errorf("Unable to run certutil command: %s\n%s", err, out)
+			return fmt.Errorf("Unable to run certutil command: %w\n%s", err, out)
 		}
 		return nil
 	})
@@ -81,9 +81,7 @@ func (cert *Certificate) IsInstalled() (bool, error) {
 	found := false
 	err := forEachNSSProfile(func(profile string) error {
 		cmd := exec.Command("certutil", "-d", profile, "-L", "-n", cert.X509().Subject.CommonName)
-		err := cmd.Run()
-
-		if err == nil {
+		if cmd.Run() == nil {
 			found = true
 		}
 		return nil
