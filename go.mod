@@ -1,6 +1,6 @@
 module github.com/getlantern/keyman
 
-go 1.15
+go 1.16
 
 require (
 	github.com/getlantern/byteexec v0.0.0-20170405023437-4cfb26ec74f4
