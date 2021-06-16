@@ -27,9 +27,9 @@ func DeleteTrustedRootByName(commonName string, prompt string) error {
 	})
 }
 
-// AddAsTrustedRoot adds the certificate to the user's trust store as a trusted
+// AddAsTrustedRootIfNeeded adds the certificate to the user's trust store as a trusted
 // root CA. Supports Chrome and Firefox
-func (cert *Certificate) AddAsTrustedRoot(prompt string) error {
+func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTitle, installPromptContent string) error {
 	tempFileName, err := cert.WriteToTempFile()
 	defer os.Remove(tempFileName)
 	if err != nil {
@@ -71,21 +71,4 @@ func forEachNSSProfile(f func(profile string) error) error {
 		}
 	}
 	return nil
-}
-
-// IsInstalled checks whether this certificate is install based purely on looking for a cert
-// in the user's nssdb that has the same common name.  This function returns
-// true if there are one or more certs in the nssdb whose common name
-// matches this cert.
-func (cert *Certificate) IsInstalled() (bool, error) {
-	found := false
-	err := forEachNSSProfile(func(profile string) error {
-		cmd := exec.Command("certutil", "-d", profile, "-L", "-n", cert.X509().Subject.CommonName)
-		if cmd.Run() == nil {
-			found = true
-		}
-		return nil
-	})
-
-	return found, err
 }
