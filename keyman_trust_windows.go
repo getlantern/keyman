@@ -57,11 +57,14 @@ func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTi
 	if IsInstalled(cert) {
 		return nil
 	}
-	cmd := exec.Command("mshta", fmt.Sprintf("javascript: var sh=new ActiveXObject('WScript.Shell'); sh.Popup('%v', 0, '%v', 64); close()", installPromptContent, installPromptTitle))
-	promptErr := cmd.Run()
-	if promptErr != nil {
-		installErr = fmt.Errorf("Unable to show windows prompt for installing certificate: %v", promptErr)
-		return installErr
+	// Warn the user of what's about to happen
+	if installPromptContent != "" && installPromptTitle != "" {
+		cmd := exec.Command("mshta", fmt.Sprintf("javascript: var sh=new ActiveXObject('WScript.Shell'); sh.Popup('%v', 0, '%v', 64); close()", installPromptContent, installPromptTitle))
+		promptErr := cmd.Run()
+		if promptErr != nil {
+			installErr = fmt.Errorf("Unable to show windows prompt for installing certificate: %v", promptErr)
+			return installErr
+		}
 	}
 	// Create a temp file containing the certificate
 	tempFile, err := ioutil.TempFile("", "tempCert")
