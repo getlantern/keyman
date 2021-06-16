@@ -35,30 +35,9 @@ func main() {
 		}
 	}
 
-	isInstalled, err := cert.IsInstalled()
-	if err != nil {
-		log.Fatalf("Unable to check if cert is installed: %v", err)
-	}
-	log.Printf("Installed initially? : %v\n", isInstalled)
-
-	err = cert.AddAsTrustedRoot(fmt.Sprintf("Please allow trustdemo to install a certificate for %v", commonName))
+	err = cert.AddAsTrustedRootIfNeeded(fmt.Sprintf("Please allow trustdemo to install a certificate for %v", commonName), "Prompt Title", "Prompt Body")
 	if err != nil {
 		log.Fatalf("Unable to add as trusted root: %v", err)
-	}
-
-	err = cert.AddAsTrustedRoot(fmt.Sprintf("You should not have been prompted to reinstall %v!", commonName))
-	if err != nil {
-		log.Fatalf("Unable to re-add as trusted root: %v", err)
-	}
-
-	isInstalled, err = cert.IsInstalled()
-	if err != nil {
-		log.Fatalf("Unable to check if cert is installed: %v", err)
-	}
-	if isInstalled {
-		log.Println("Cert was correctly detected as installed")
-	} else {
-		log.Println("Cert doesn't show as being installed even though it should")
 	}
 
 	in := bufio.NewReader(os.Stdin)
