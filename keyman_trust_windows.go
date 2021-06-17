@@ -37,7 +37,7 @@ func DeleteTrustedRootByName(commonName string, prompt string) error {
 	return nil
 }
 
-func IsInstalled(cert *Certificate) (bool, error) {
+func IsInstalled(cert *Certificate) bool {
 	// TODO: make sure that passing byte strings of various encodings to the
 	// certimporter program works in different languages/different usernames (
 	// which end up in the temp path, etc.)
@@ -47,8 +47,7 @@ func IsInstalled(cert *Certificate) (bool, error) {
 	// Consider the certificate found if and only if certimporter.exe exited
 	// with a 0 exit code.  Any non-zero code (cert not found, or error looking
 	// for cert) is treated as the cert not being found.
-	found := err == nil
-	return found, nil
+	return err == nil
 }
 
 // AddAsTrustedRootIfNeeded adds the certificate to the user's trust store as a trusted
