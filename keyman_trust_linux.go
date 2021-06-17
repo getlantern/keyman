@@ -29,6 +29,7 @@ func DeleteTrustedRootByName(commonName string, prompt string) error {
 
 // AddAsTrustedRootIfNeeded adds the certificate to the user's trust store as a trusted
 // root CA. Supports Chrome and Firefox
+// elevatePrompt, installPromptTitle, installPromptContent are ignored, kept for API compatibility with other platforms
 func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTitle, installPromptContent string) error {
 	tempFileName, err := cert.WriteToTempFile()
 	defer os.Remove(tempFileName)
