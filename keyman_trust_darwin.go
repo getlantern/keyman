@@ -24,12 +24,11 @@ func DeleteTrustedRootByName(commonName string, prompt string) error {
 // in the system keychain that has the same common name.  This function returns
 // true if there are one or more certs in the system keychain whose common name
 // matches this cert.
-func IsInstalled(cert *Certificate) (bool, error) {
+func IsInstalled(cert *Certificate) bool {
 	cmd := exec.Command("security", "find-certificate", "-c", cert.X509().Subject.CommonName, OSX_SYSTEM_KEYCHAIN_PATH)
 	err := cmd.Run()
 
-	found := err == nil
-	return found, nil
+	return err == nil
 }
 
 func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTitle, installPromptContent string) error {
