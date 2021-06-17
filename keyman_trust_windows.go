@@ -57,7 +57,7 @@ func (cert *Certificate) isInstalled() bool {
 // installPromptTitle/Content will be used to show a warning popup before elevating to let user know what is going to happen
 // returns true if any actual changes were made
 func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTitle, installPromptContent string) (bool, error) {
-	if cert.IsInstalled() {
+	if cert.isInstalled() {
 		return false, nil
 	}
 	// Warn the user of what's about to happen
@@ -65,8 +65,7 @@ func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTi
 		cmd := exec.Command("mshta", fmt.Sprintf("javascript: var sh=new ActiveXObject('WScript.Shell'); sh.Popup('%v', 0, '%v', 64); close()", installPromptContent, installPromptTitle))
 		promptErr := cmd.Run()
 		if promptErr != nil {
-			installErr = fmt.Errorf("Unable to show windows prompt for installing certificate: %v", promptErr)
-			return false, installErr
+			return false, fmt.Errorf("Unable to show windows prompt for installing certificate: %v", promptErr)
 		}
 	}
 	// Create a temp file containing the certificate
