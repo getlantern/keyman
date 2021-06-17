@@ -25,13 +25,13 @@ func main() {
 		log.Fatalf("Unable to generate certificate: %v", err)
 	}
 
-	err = cert.AddAsTrustedRootIfNeeded(fmt.Sprintf("Please allow trustdemo to install a certificate for %v", commonName), "Prompt Title", "Prompt Body")
+	result, err := cert.AddAsTrustedRootIfNeeded(fmt.Sprintf("Please allow trustdemo to install a certificate for %v", commonName), "Prompt Title", "Prompt Body")
 	if err != nil {
 		log.Fatalf("Unable to add as trusted root: %v", err)
 	}
 
 	in := bufio.NewReader(os.Stdin)
-	fmt.Printf("Installed certificate with common name %v, hit Enter to continue ...", commonName)
+	fmt.Printf("Installed certificate with common name %v, result: %v, hit Enter to continue ...", result, commonName)
 	in.ReadString('\n')
 
 	err = keyman.DeleteTrustedRootByName(commonName, fmt.Sprintf("Please allow trustdemo to uninstall the certificate for %v", commonName))

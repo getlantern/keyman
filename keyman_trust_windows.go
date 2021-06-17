@@ -55,9 +55,10 @@ func (cert *Certificate) isInstalled() bool {
 // root CA.
 // elevatePrompt will be displayed when asking for admin permissions
 // installPromptTitle/Content will be used to show a warning popup before elevating to let user know what is going to happen
-func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTitle, installPromptContent string) error {
+// returns true if any actual changes were made
+func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTitle, installPromptContent string) (bool, error) {
 	if cert.IsInstalled() {
-		return nil
+		return false, nil
 	}
 	// Warn the user of what's about to happen
 	if installPromptContent != "" && installPromptTitle != "" {
@@ -65,26 +66,26 @@ func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTi
 		promptErr := cmd.Run()
 		if promptErr != nil {
 			installErr = fmt.Errorf("Unable to show windows prompt for installing certificate: %v", promptErr)
-			return installErr
+			return false, installErr
 		}
 	}
 	// Create a temp file containing the certificate
 	tempFile, err := ioutil.TempFile("", "tempCert")
 	defer os.Remove(tempFile.Name())
 	if err != nil {
-		return fmt.Errorf("Unable to create temp file: %s", err)
+		return false, fmt.Errorf("Unable to create temp file: %s", err)
 	}
 	err = cert.WriteToDERFile(tempFile.Name())
 	if err != nil {
-		return fmt.Errorf("Unable to save certificate to temp file: %s", err)
+		return false, fmt.Errorf("Unable to save certificate to temp file: %s", err)
 	}
 
 	// Add it as a trusted cert
 	cmd := elevatedIfNecessary(elevatePrompt)(cebe.Filename, "add", ROOT_CERT_STORE_NAME, tempFile.Name())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("Unable to run certimporter.exe: %s\n%s", err, out)
+		return false, fmt.Errorf("Unable to run certimporter.exe: %s\n%s", err, out)
 	} else {
-		return nil
+		return true, nil
 	}
 }

@@ -35,9 +35,10 @@ func (cert *Certificate) isInstalled() bool {
 // root CA.
 // elevatePrompt will be displayed when asking for admin permissions
 // installPromptTitle/Content are ignored
-func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTitle, installPromptContent string) error {
-	if cert.isInstalled(cert) {
-		return nil
+// returns true if any actual changes were made
+func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTitle, installPromptContent string) (bool, error) {
+	if cert.isInstalled() {
+		return false, nil
 	}
 	tempFileName, err := cert.WriteToTempFile()
 	defer func() {
@@ -46,7 +47,7 @@ func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTi
 		}
 	}()
 	if err != nil {
-		return fmt.Errorf("Unable to create temp file: %s", err)
+		return false, fmt.Errorf("Unable to create temp file: %s", err)
 	}
 
 	cmd := exec.Command("security", "verify-cert", "-c", tempFileName)
@@ -54,18 +55,18 @@ func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTi
 	if err == nil {
 		// certificate verified successfully so it's already a trusted root, no need
 		// to install.
-		return nil
+		return false, nil
 	}
 
 	// Add it as a trusted cert
 	cmd = elevatedIfNecessary(elevatePrompt)("security", "add-trusted-cert", "-d", "-k", OSX_SYSTEM_KEYCHAIN_PATH, tempFileName)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("Unable to run security command: %s\n%s", err, out)
+		return false, fmt.Errorf("Unable to run security command: %s\n%s", err, out)
 	} else {
 		cmd := exec.Command("security", "verify-cert", "-c", tempFileName)
 		out, err := cmd.CombinedOutput()
 		log.Debugf("%v: %v", out, err)
-		return nil
+		return true, nil
 	}
 }

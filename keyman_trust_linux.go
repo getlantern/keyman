@@ -27,23 +27,34 @@ func DeleteTrustedRootByName(commonName string, prompt string) error {
 	})
 }
 
+func (cert *Certificate) isInstalled(profile string) bool {
+	cmd := exec.Command("certutil", "-d", profile, "-L", "-n", cert.X509().Subject.CommonName)
+	err := cmd.Run()
+
+	return err == nil
+}
+
 // AddAsTrustedRootIfNeeded adds the certificate to the user's trust store as a trusted
 // root CA. Supports Chrome and Firefox
 // elevatePrompt, installPromptTitle, installPromptContent are ignored, kept for API compatibility with other platforms
-func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTitle, installPromptContent string) error {
+// returns true if any actual changes were made
+func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTitle, installPromptContent string) (bool, error) {
 	tempFileName, err := cert.WriteToTempFile()
 	defer os.Remove(tempFileName)
 	if err != nil {
-		return fmt.Errorf("Unable to create temp file: %s", err)
+		return false, fmt.Errorf("Unable to create temp file: %s", err)
 	}
-
-	return forEachNSSProfile(func(profile string) error {
-		// Add it as a trusted cert
-		// https://code.google.com/p/chromium/wiki/LinuxCertManagement#Add_a_certificate
-		cmd := exec.Command("certutil", "-d", profile, "-A", "-t", "C,,", "-n", cert.X509().Subject.CommonName, "-i", tempFileName)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("Unable to run certutil command: %w\n%s", err, out)
+	installed := false
+	return installed, forEachNSSProfile(func(profile string) error {
+		if !cert.isInstalled(profile) {
+			// Add it as a trusted cert
+			// https://code.google.com/p/chromium/wiki/LinuxCertManagement#Add_a_certificate
+			cmd := exec.Command("certutil", "-d", profile, "-A", "-t", "C,,", "-n", cert.X509().Subject.CommonName, "-i", tempFileName)
+			out, err := cmd.CombinedOutput()
+			if err != nil {
+				return fmt.Errorf("Unable to run certutil command: %w\n%s", err, out)
+			}
+			installed = true
 		}
 		return nil
 	})
