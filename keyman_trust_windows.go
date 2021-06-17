@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 
 	"github.com/getlantern/byteexec"
 	"github.com/getlantern/keyman/certimporter"
@@ -37,7 +38,7 @@ func DeleteTrustedRootByName(commonName string, prompt string) error {
 	return nil
 }
 
-func IsInstalled(cert *Certificate) bool {
+func (cert *Certificate) isInstalled() bool {
 	// TODO: make sure that passing byte strings of various encodings to the
 	// certimporter program works in different languages/different usernames (
 	// which end up in the temp path, etc.)
@@ -52,8 +53,10 @@ func IsInstalled(cert *Certificate) bool {
 
 // AddAsTrustedRootIfNeeded adds the certificate to the user's trust store as a trusted
 // root CA.
+// elevatePrompt will be displayed when asking for admin permissions
+// installPromptTitle/Content will be used to show a warning popup before elevating to let user know what is going to happen
 func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTitle, installPromptContent string) error {
-	if IsInstalled(cert) {
+	if cert.IsInstalled() {
 		return nil
 	}
 	// Warn the user of what's about to happen

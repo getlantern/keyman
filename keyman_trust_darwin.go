@@ -20,19 +20,23 @@ func DeleteTrustedRootByName(commonName string, prompt string) error {
 	return nil
 }
 
-// IsInstalled checks whether this certificate is install based purely on looking for a cert
+// isInstalled checks whether this certificate is install based purely on looking for a cert
 // in the system keychain that has the same common name.  This function returns
 // true if there are one or more certs in the system keychain whose common name
 // matches this cert.
-func IsInstalled(cert *Certificate) bool {
+func (cert *Certificate) isInstalled() bool {
 	cmd := exec.Command("security", "find-certificate", "-c", cert.X509().Subject.CommonName, OSX_SYSTEM_KEYCHAIN_PATH)
 	err := cmd.Run()
 
 	return err == nil
 }
 
+// AddAsTrustedRootIfNeeded adds the certificate to the user's trust store as a trusted
+// root CA.
+// elevatePrompt will be displayed when asking for admin permissions
+// installPromptTitle/Content are ignored
 func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTitle, installPromptContent string) error {
-	if IsInstalled(cert) {
+	if cert.isInstalled(cert) {
 		return nil
 	}
 	tempFileName, err := cert.WriteToTempFile()
