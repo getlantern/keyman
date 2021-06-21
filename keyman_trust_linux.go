@@ -37,32 +37,56 @@ func (cert *Certificate) isInstalled(profile string) bool {
 // AddAsTrustedRootIfNeeded adds the certificate to the user's trust store as a trusted
 // root CA. Supports Chrome and Firefox
 // elevatePrompt, installPromptTitle, installPromptContent are ignored, kept for API compatibility with other platforms
-// If installAttempted is provided it will be called on any attempt to modify system cert store
+// If installAttempted is provided it will be called on any attempt to modify system cert store with the resulting
+// error (if any)
 func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTitle, installPromptContent string, installAttempted func(error)) error {
-	tempFileName, err := cert.WriteToTempFile()
-	defer func() {
-		if err := os.Remove(tempFileName); err != nil {
-			log.Debugf("Unable to remove file: %v", err)
+	reportInstallResult := func(err error) error {
+		if installAttempted != nil {
+			installAttempted(err)
 		}
-	}()
-	if err != nil {
-		return fmt.Errorf("Unable to create temp file: %s", err)
+		return err
 	}
-	return forEachNSSProfile(func(profile string) error {
+
+	var profilesNeedingInstall []string
+	forEachNSSProfile(func(profile string) error {
 		if !cert.isInstalled(profile) {
-			// Add it as a trusted cert
-			// https://code.google.com/p/chromium/wiki/LinuxCertManagement#Add_a_certificate
-			cmd := exec.Command("certutil", "-d", profile, "-A", "-t", "C,,", "-n", cert.X509().Subject.CommonName, "-i", tempFileName)
-			out, err := cmd.CombinedOutput()
-			if installAttempted != nil {
-				installAttempted(err)
-			}
-			if err != nil {
-				return fmt.Errorf("Unable to run certutil command: %w\n%s", err, out)
-			}
+			profilesNeedingInstall = append(profilesNeedingInstall, profile)
 		}
 		return nil
 	})
+
+	if len(profilesNeedingInstall) == 0 {
+		return nil
+	}
+
+	tempFileName, err := cert.WriteToTempFile()
+	defer func() {
+		if err := os.Remove(tempFileName); err != nil {
+			log.Debugf("Unable to remove file: %w", err)
+		}
+	}()
+	if err != nil {
+		return reportInstallResult(err)
+	}
+
+	for _, profile := range profilesNeedingInstall {
+		if err := reportInstallResult(cert.addAsTrustedRoot(tempFileName, profile)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (cert *Certificate) addAsTrustedRoot(tempFileName, profile string) error {
+	// Add it as a trusted cert
+	// https://code.google.com/p/chromium/wiki/LinuxCertManagement#Add_a_certificate
+	cmd := exec.Command("certutil", "-d", profile, "-A", "-t", "C,,", "-n", cert.X509().Subject.CommonName, "-i", tempFileName)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("Unable to run certutil command: %w\n%s", err, out)
+	}
+	return nil
 }
 
 func pathExists(path string) bool {
