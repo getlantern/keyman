@@ -55,36 +55,39 @@ func (cert *Certificate) isInstalled() bool {
 // root CA.
 // elevatePrompt will be displayed when asking for admin permissions
 // installPromptTitle/Content will be used to show a warning popup before elevating to let user know what is going to happen
-// returns true if any actual changes were made
-func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTitle, installPromptContent string) (bool, error) {
+// If installAttempted is provided it will be called on any attempt to modify system cert store
+func (cert *Certificate) AddAsTrustedRootIfNeeded(elevatePrompt, installPromptTitle, installPromptContent string, installAttempted func(error)) error {
 	if cert.isInstalled() {
-		return false, nil
+		return nil
 	}
 	// Warn the user of what's about to happen
 	if installPromptContent != "" && installPromptTitle != "" {
 		cmd := exec.Command("mshta", fmt.Sprintf("javascript: var sh=new ActiveXObject('WScript.Shell'); sh.Popup('%v', 0, '%v', 64); close()", installPromptContent, installPromptTitle))
 		promptErr := cmd.Run()
 		if promptErr != nil {
-			return false, fmt.Errorf("Unable to show windows prompt for installing certificate: %v", promptErr)
+			return fmt.Errorf("Unable to show windows prompt for installing certificate: %v", promptErr)
 		}
 	}
 	// Create a temp file containing the certificate
 	tempFile, err := ioutil.TempFile("", "tempCert")
 	defer os.Remove(tempFile.Name())
 	if err != nil {
-		return false, fmt.Errorf("Unable to create temp file: %s", err)
+		return fmt.Errorf("Unable to create temp file: %s", err)
 	}
 	err = cert.WriteToDERFile(tempFile.Name())
 	if err != nil {
-		return false, fmt.Errorf("Unable to save certificate to temp file: %s", err)
+		return fmt.Errorf("Unable to save certificate to temp file: %s", err)
 	}
 
 	// Add it as a trusted cert
 	cmd := elevatedIfNecessary(elevatePrompt)(cebe.Filename, "add", ROOT_CERT_STORE_NAME, tempFile.Name())
 	out, err := cmd.CombinedOutput()
+	if installAttempted != nil {
+		installAttempted(err)
+	}
 	if err != nil {
-		return false, fmt.Errorf("Unable to run certimporter.exe: %s\n%s", err, out)
+		return fmt.Errorf("Unable to run certimporter.exe: %s\n%s", err, out)
 	} else {
-		return true, nil
+		return nil
 	}
 }
