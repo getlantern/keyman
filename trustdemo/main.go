@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
-	"runtime"
 	"time"
 
 	"github.com/getlantern/keyman"
@@ -27,38 +25,10 @@ func main() {
 		log.Fatalf("Unable to generate certificate: %v", err)
 	}
 
-	if runtime.GOOS == "windows" {
-		cmd := exec.Command("mshta", "javascript: var sh=new ActiveXObject('WScript.Shell'); sh.Popup('Please allow certimporter.exe to make changes to your system', 0, 'TrustDemo wants to make change to your system certificates', 64); close()")
-		err := cmd.Run()
-		if err != nil {
-			log.Fatalf("Unable to display introductory prompt")
-		}
-	}
-
-	isInstalled, err := cert.IsInstalled()
-	if err != nil {
-		log.Fatalf("Unable to check if cert is installed: %v", err)
-	}
-	log.Printf("Installed initially? : %v\n", isInstalled)
-
-	err = cert.AddAsTrustedRoot(fmt.Sprintf("Please allow trustdemo to install a certificate for %v", commonName))
-	if err != nil {
+	if err = cert.AddAsTrustedRootIfNeeded(fmt.Sprintf("Please allow trustdemo to install a certificate for %v", commonName), "Prompt Title", "Prompt Body", func(err error) {
+		fmt.Printf("Cert installation attempted with resut: %v", err)
+	}); err != nil {
 		log.Fatalf("Unable to add as trusted root: %v", err)
-	}
-
-	err = cert.AddAsTrustedRoot(fmt.Sprintf("You should not have been prompted to reinstall %v!", commonName))
-	if err != nil {
-		log.Fatalf("Unable to re-add as trusted root: %v", err)
-	}
-
-	isInstalled, err = cert.IsInstalled()
-	if err != nil {
-		log.Fatalf("Unable to check if cert is installed: %v", err)
-	}
-	if isInstalled {
-		log.Println("Cert was correctly detected as installed")
-	} else {
-		log.Println("Cert doesn't show as being installed even though it should")
 	}
 
 	in := bufio.NewReader(os.Stdin)
